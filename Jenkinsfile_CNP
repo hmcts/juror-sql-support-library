@@ -1,0 +1,9 @@
+#!groovy
+
+@Library("Infrastructure")
+
+def type = "java"
+def product = "juror"
+def component = "sql-support-library"
+
+withPipeline(type, product, component) {}

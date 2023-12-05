@@ -189,17 +189,24 @@ dependencies {
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-json'
   implementation group: 'org.springframework.boot', name: 'spring-boot-starter-data-jpa'
 
+
+  implementation group: 'org.postgresql', name: 'postgresql', version: '42.6.0'
+
   implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.2.0'
 
   implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.0.1'
 
   implementation group: 'org.apache.logging.log4j', name: 'log4j-api', version: log4JVersion
   implementation group: 'org.apache.logging.log4j', name: 'log4j-to-slf4j', version: log4JVersion
+  implementation group: 'org.apache.commons', name: 'commons-lang3', version: '3.14.0'
+  implementation group: 'org.apache.commons', name: 'commons-rng-simple', version: '1.5'
+  implementation group: 'org.apache.commons', name: 'commons-text', version: '1.11.0'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
+  implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: '1.4'
 
-  implementation files('lib/juror-generation-support-library-0.0.5.jar')
-  annotationProcessor files('lib/juror-generation-support-library-0.0.5.jar')
+  implementation files('lib/juror-generation-support-library-1.0.0.jar')
+  annotationProcessor files('lib/juror-generation-support-library-1.0.0.jar')
   implementation 'org.projectlombok:lombok:1.18.30'
   annotationProcessor 'org.projectlombok:lombok:1.18.30'
 

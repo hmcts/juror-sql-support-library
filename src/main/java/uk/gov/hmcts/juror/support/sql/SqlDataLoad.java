@@ -3,10 +3,7 @@ package uk.gov.hmcts.juror.support.sql;
 import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGeneratorImpl;
 import uk.gov.hmcts.juror.support.sql.dto.CreateJurorPoolRequest;
 import uk.gov.hmcts.juror.support.sql.dto.CreatePopulatedPoolRequest;
-import uk.gov.hmcts.juror.support.sql.entity.Juror;
-import uk.gov.hmcts.juror.support.sql.entity.JurorPool;
-import uk.gov.hmcts.juror.support.sql.entity.JurorPoolGenerator;
-import uk.gov.hmcts.juror.support.sql.entity.Pool;
+import uk.gov.hmcts.juror.support.sql.entity.*;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -16,7 +13,7 @@ public class SqlDataLoad {
 
 
     public static List<JurorPool> createPopulatedPool(CreatePopulatedPoolRequest populatedPoolRequest) {
-        final Pool pool = populatedPoolRequest.getPoolGenerator().generate();
+        final PoolRequest pool = populatedPoolRequest.getPoolRequestGenerator().generate();
 
         List<JurorPool> jurorPools = new ArrayList<>();
 
@@ -28,11 +25,11 @@ public class SqlDataLoad {
         return jurorPools;
     }
 
-    public static List<JurorPool> createJurorPools(Pool pool, CreateJurorPoolRequest jurorPoolRequest, int count) {
+    public static List<JurorPool> createJurorPools(PoolRequest pool, CreateJurorPoolRequest jurorPoolRequest, int count) {
         final List<JurorPool> jurorPools = new ArrayList<>(count);
 
         final JurorPoolGenerator jurorPoolGenerator = jurorPoolRequest.getJurorPoolGenerator();
-        jurorPoolGenerator.setPoolNumber(new FixedValueGeneratorImpl<>(pool.getPoolNumber()));
+        jurorPoolGenerator.setPool(new FixedValueGeneratorImpl<>(pool));
 
         for(int i = 0; i < count; i++) {
             jurorPools.add(createJurorPool(jurorPoolRequest));
@@ -43,7 +40,7 @@ public class SqlDataLoad {
     public static JurorPool createJurorPool(CreateJurorPoolRequest jurorPoolRequest) {
         final Juror juror = jurorPoolRequest.getJurorGenerator().generate();
         final JurorPoolGenerator jurorPoolGenerator = jurorPoolRequest.getJurorPoolGenerator();
-        jurorPoolGenerator.setJurorNumber(new FixedValueGeneratorImpl<>(juror.getJurorNumber()));
+        jurorPoolGenerator.setJuror(new FixedValueGeneratorImpl<>(juror));
 
         return jurorPoolGenerator.generate();
     }

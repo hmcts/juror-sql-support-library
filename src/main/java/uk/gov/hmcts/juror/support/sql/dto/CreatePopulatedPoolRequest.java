@@ -4,7 +4,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import uk.gov.hmcts.juror.support.sql.entity.JurorGenerator;
-import uk.gov.hmcts.juror.support.sql.entity.PoolGenerator;
+import uk.gov.hmcts.juror.support.sql.entity.PoolRequestGenerator;
 
 import java.util.Map;
 
@@ -12,7 +12,7 @@ import java.util.Map;
 @Builder
 @Getter
 public class CreatePopulatedPoolRequest {
-    private final PoolGenerator poolGenerator;
+    private final PoolRequestGenerator poolRequestGenerator;
     private final Map<CreateJurorPoolRequest, Integer> jurorCountMap;
 
 

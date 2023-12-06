@@ -206,8 +206,8 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
   implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: '1.4'
 
-  implementation files('lib/juror-generation-support-library-1.0.0.jar')
-  annotationProcessor files('lib/juror-generation-support-library-1.0.0.jar')
+  implementation 'com.github.hmcts:juror-generation-support-library:1.1.0'
+  annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.1.0'
   implementation 'org.projectlombok:lombok:1.18.30'
   annotationProcessor 'org.projectlombok:lombok:1.18.30'
 

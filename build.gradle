@@ -1,5 +1,6 @@
 plugins {
   id 'application'
+  id 'maven-publish'
   id 'checkstyle'
   id 'pmd'
   id 'jacoco'
@@ -10,8 +11,8 @@ plugins {
   id 'org.sonarqube' version '4.4.1.3373'
 }
 
-group = 'uk.gov.hmcts.juror'
-version = '0.0.1'
+group = 'com.github.hmcts.juror'
+version = '1.0.0'
 
 java {
   toolchain {
@@ -205,8 +206,8 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
   implementation group: 'com.github.curious-odd-man', name: 'rgxgen', version: '1.4'
 
-  implementation files('lib/juror-generation-support-library-1.0.0.jar')
-  annotationProcessor files('lib/juror-generation-support-library-1.0.0.jar')
+  implementation 'com.github.hmcts:juror-generation-support-library:1.1.0'
+  annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.1.0'
   implementation 'org.projectlombok:lombok:1.18.30'
   annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
@@ -235,4 +236,15 @@ rootProject.tasks.named("processSmokeTestResources") {
 
 wrapper {
     distributionType = Wrapper.DistributionType.ALL
+}
+
+publishing {
+  publications {
+    Main(MavenPublication) {
+      from components.java
+      groupId project.group
+      artifactId 'sql-support-library'
+      version project.version
+    }
+  }
 }

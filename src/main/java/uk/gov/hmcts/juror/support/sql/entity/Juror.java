@@ -2,6 +2,8 @@ package uk.gov.hmcts.juror.support.sql.entity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -12,6 +14,7 @@ import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationC
 import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
 import uk.gov.hmcts.juror.support.generation.generators.value.EmailGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.FirstNameGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.LastNameGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.NullValueGenerator;
@@ -82,11 +85,11 @@ public class Juror implements Serializable {
     private LocalDate dateOfBirth;
 
     //@Audited
-    @Column(name = "address")
+    @Column(name = "address_line_1")
     //@Length(max = 35)
     //@Pattern(regexp = NO_PIPES_REGEX)
     //@NotBlank
-    @RegexGenerator(regex = "[0-9]{0,9} [A-Z]{5,15} (Road|Lane|Gate|Close|Avenue|Street|Way|Drive|Gardens|Crescent|"
+    @RegexGenerator(regex = "[0-9]{0,3} [A-Z]{5,10} (Road|Lane|Gate|Close|Avenue|Street|Way|Drive|Gardens|Crescent|"
         + "Terrace|Place|Hill|Park|View|Court|Square|Walk|Lane|Grove|Gardens|Hill|Hillside|Hilltop|Hollow|"
         + "House|Housing|Hurst|Industrial|Ings|Island|Islands|Isle|Isles|Junction|Keep|Kings|Knapp|Knoll|"
         + "Knolls|Lair|Lake|Lakes|Landing|Lane|Lanes|Lawn|Lawns|Lea|Leas|Lee|Lees|Line|Link|Little|Lodge|"
@@ -101,41 +104,35 @@ public class Juror implements Serializable {
     private String addressLine1;
 
     //@Audited
-    @Column(name = "address2")
+    @Column(name = "address_line_2")
     //@Length(max = 35)
     //@Pattern(regexp = NO_PIPES_REGEX)
     @RegexGenerator(regex = "(Apartment|Suite|Room|Floor|Box) Number [0-9]{1,3}")
     private String addressLine2;
 
     //@Audited
-    @Column(name = "address3")
+    @Column(name = "address_line_3")
     //@Length(max = 35)
     //@Pattern(regexp = NO_PIPES_REGEX)
     @RandomFromFileGenerator(file = "data/city.txt")
     private String addressLine3;
 
     //@Audited
-    @Column(name = "address4")
+    @Column(name = "address_line_4")
     //@Length(max = 35)
     //@Pattern(regexp = NO_PIPES_REGEX)
     @RandomFromFileGenerator(file = "data/county.txt")
     private String addressLine4;
 
     //@Audited
-    @Column(name = "address5")
+    @Column(name = "address_line_5")
     //@Length(max = 35)
     //@Pattern(regexp = NO_PIPES_REGEX)
     @NullValueGenerator
     private String addressLine5;
 
     //@Audited
-    @Column(name = "address6")
-    //@Null
-    @NullValueGenerator
-    private String addressLine6 = null;
-
-    //@Audited
-    @Column(name = "zip")
+    @Column(name = "postcode")
     //@Length(max = 10)
     //@Pattern(regexp = POSTCODE_REGEX)
     @RandomFromFileGenerator(file = "data/postcode.txt")
@@ -160,6 +157,7 @@ public class Juror implements Serializable {
 
     //@NotNull
     @Column(name = "responded")
+    @FixedValueGenerator(value = "true")
     private boolean responded;
 
     @Column(name = "date_excused")
@@ -233,7 +231,7 @@ public class Juror implements Serializable {
     private Boolean welsh;
 
     @Column(name = "police_check")
-    //@Enumerated(EnumType.STRING)
+    @Enumerated(EnumType.STRING)
     private PoliceCheck policeCheck;
 
     //@Length(max = 20)

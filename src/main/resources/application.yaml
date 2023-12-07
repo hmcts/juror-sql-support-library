@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8089
 
 management:
   endpoint:
@@ -43,6 +43,7 @@ spring:
           lob:
             # silence the 'wall-of-text' - unnecessary exception throw about blob types
             non_contextual_creation: true
+          batch_size: 100
         format_sql: true
     show-sql: false
     generate-ddl: false

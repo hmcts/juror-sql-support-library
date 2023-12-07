@@ -1,42 +1,31 @@
 package uk.gov.hmcts.juror.support.sql.generators;
 
-import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGeneratorImpl;
 import uk.gov.hmcts.juror.support.sql.dto.CreateJurorPoolRequest;
-import uk.gov.hmcts.juror.support.sql.entity.JurorGenerator;
-
-import java.util.List;
-import java.util.Map;
 
 public class JurorPoolRequestGeneratorUtil {
 
 
-    public static List<CreateJurorPoolRequest> createByStatus(Map<String,Integer> statusCountMap,
-                                                              int minPoolSizeInclusive,
-                                                              int maxPoolSizeExclusive){
-return  List.of();
-    
-    }
 
-    public static CreateJurorPoolRequest responded() {
-
-        new JurorGenerator().setFirstName(new FixedValueGeneratorImpl<>("My Name"));
+    public static CreateJurorPoolRequest responded(boolean isCourtOwned) {
         return new CreateJurorPoolRequest(
-            JurorGeneratorUtil.responded(),
-            JurorPoolGeneratorUtil.responded()
+            JurorGeneratorUtil.responded(isCourtOwned),
+            JurorPoolGeneratorUtil.responded(isCourtOwned)
         );
     }
 
-    public static CreateJurorPoolRequest disqualified() {
+    public static CreateJurorPoolRequest disqualified(boolean isCourtOwned) {
         return new CreateJurorPoolRequest(
-            JurorGeneratorUtil.disqualified(),
-            JurorPoolGeneratorUtil.disqualified()
+            JurorGeneratorUtil.disqualified(isCourtOwned),
+            JurorPoolGeneratorUtil.disqualified(isCourtOwned)
         );
     }
 
-    public static CreateJurorPoolRequest excludedJuror() {
+    public static CreateJurorPoolRequest excusedJuror(boolean isCourtOwned) {
         return new CreateJurorPoolRequest(
-            JurorGeneratorUtil.excluded(),
-            JurorPoolGeneratorUtil.excluded()
+            JurorGeneratorUtil.excused(isCourtOwned),
+            JurorPoolGeneratorUtil.excused(isCourtOwned)
         );
     }
+
+
 }

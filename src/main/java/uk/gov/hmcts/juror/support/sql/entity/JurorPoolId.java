@@ -13,7 +13,7 @@ import java.io.Serializable;
 @EqualsAndHashCode
 public class JurorPoolId implements Serializable {
 
-    private Juror juror;
-    private PoolRequest pool;
+    private String jurorNumber;
+    private String poolNumber;
 
 }

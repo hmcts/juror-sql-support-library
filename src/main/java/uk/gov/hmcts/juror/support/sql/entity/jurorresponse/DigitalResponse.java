@@ -43,19 +43,19 @@ public class DigitalResponse extends AbstractJurorResponse {
     private Boolean mentalHealthAct = Boolean.FALSE;
 
     @Column(name = "residency_detail")
-    @FixedValueGenerator("true")
+    @NullValueGenerator
     private String residencyDetail;
 
     @Column(name = "mental_health_act_details")
-    @FixedValueGenerator("false")
+    @NullValueGenerator
     private String mentalHealthActDetails;
 
     @Column(name = "bail_details")
-    @FixedValueGenerator("false")
+    @NullValueGenerator
     private String bailDetails;
 
     @Column(name = "convictions_details")
-    @FixedValueGenerator("false")
+    @NullValueGenerator
     private String convictionsDetails;
 
     @Column(name = "deferral_reason")
@@ -63,14 +63,11 @@ public class DigitalResponse extends AbstractJurorResponse {
     private String deferralReason;
 
     @Column(name = "deferral_date")
-    @LocalDateGenerator(
-            minInclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 4, unit = ChronoUnit.MONTHS),
-            maxExclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 2, unit = ChronoUnit.WEEKS)
-    )
+    @NullValueGenerator
     private String deferralDate;
 
     @Column(name = "excusal_reason")
-    @FixedValueGenerator("d")
+    @NullValueGenerator
     private String excusalReason;
 
     @Version
@@ -79,11 +76,11 @@ public class DigitalResponse extends AbstractJurorResponse {
     private Integer version;
 
     @Column(name = "thirdparty_fname")
-    @FirstNameGenerator
+    @NullValueGenerator
     private String thirdPartyFName;
 
     @Column(name = "thirdparty_lname")
-    @LastNameGenerator
+    @NullValueGenerator
     private String thirdPartyLName;
 
     @Column(name = "main_phone")
@@ -100,7 +97,7 @@ public class DigitalResponse extends AbstractJurorResponse {
 
     @Column(name = "thirdparty_other_reason")
 //    @Pattern(regexp = NO_PIPES_REGEX)
-    @FixedValueGenerator("ill")
+    @NullValueGenerator
     private String thirdPartyOtherReason;
 
     @Column(name = "juror_phone_details")

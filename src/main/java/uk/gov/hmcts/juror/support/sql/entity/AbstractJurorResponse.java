@@ -46,8 +46,9 @@ public abstract class AbstractJurorResponse extends Address implements Serializa
     private String lastName;
 
     @Column(name = "processing_status")
-    @FixedValueGenerator("success")
-    private String processingStatus;
+    @Enumerated(EnumType.STRING)
+    @FixedValueGenerator("ProcessingStatus.TODO")
+    private ProcessingStatus processingStatus = ProcessingStatus.TODO;
 
     @Column(name = "date_of_birth")
     @LocalDateGenerator(

@@ -17,7 +17,7 @@ import java.time.temporal.ChronoUnit;
 @Table(name = "juror_response", schema = "juror_mod")
 @Getter
 @Setter
-public class AbstractJurorResponse extends Address implements Serializable {
+public abstract class AbstractJurorResponse extends Address implements Serializable {
 
     @Id
     @Column(name = "juror_number")

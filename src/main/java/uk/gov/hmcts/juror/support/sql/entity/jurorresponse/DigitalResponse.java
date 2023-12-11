@@ -22,7 +22,6 @@ import java.time.temporal.ChronoUnit;
 @AllArgsConstructor
 @Getter
 @Setter
-//@DigitalThirdPartyOtherReason
 @Table(name = "juror_response", schema = "juror_mod")
 @EqualsAndHashCode(callSuper = true)
 public class DigitalResponse extends AbstractJurorResponse {
@@ -60,7 +59,7 @@ public class DigitalResponse extends AbstractJurorResponse {
     private String convictionsDetails;
 
     @Column(name = "deferral_reason")
-    @FixedValueGenerator("false")
+    @NullValueGenerator
     private String deferralReason;
 
     @Column(name = "deferral_date")
@@ -110,7 +109,7 @@ public class DigitalResponse extends AbstractJurorResponse {
     private Boolean jurorPhoneDetails = Boolean.TRUE;
 
     @Column(name = "juror_email_details")
-    @Builder.Default
+    @FixedValueGenerator("true")
     @EmailGenerator
     private Boolean jurorEmailDetails = Boolean.TRUE;
 

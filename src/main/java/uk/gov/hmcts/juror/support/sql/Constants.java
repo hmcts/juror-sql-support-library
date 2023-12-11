@@ -1,5 +1,9 @@
 package uk.gov.hmcts.juror.support.sql;
 
+import uk.gov.hmcts.juror.support.sql.generators.PoolRequestGeneratorUtil;
+
+import java.util.Map;
+
 public class Constants {
 
     public static final String PHONE_REGEX = "^(\\+44|0)7\\d{9}$";
@@ -17,4 +21,16 @@ public class Constants {
             + "Streets|Summit|Terrace|Throughway|Trace|Track|Trafficway|Trail|Trailer|Tunnel|Turnpike|Underpass|"
             + "Union|Unions|Valley|Valleys|Viaduct|View|Views|Village|Villages|Ville|Vista|Walk|Wall|Way|Ways|";
     public static final String ADDRESSTWO_REGEX = "(Apartment|Suite|Room|Floor|Box) Number [0-9]{1,3}";
+
+    public static final Map<PoolRequestGeneratorUtil.CourtType, Integer> POOL_REQUEST_WEIGHT_MAP;
+
+    static {
+        POOL_REQUEST_WEIGHT_MAP = Map.of(
+            PoolRequestGeneratorUtil.CourtType.CIVIL, 145,
+            PoolRequestGeneratorUtil.CourtType.CRIMINAL, 4,
+            PoolRequestGeneratorUtil.CourtType.CROWN, 62_156,
+            PoolRequestGeneratorUtil.CourtType.HIGH, 15,
+            PoolRequestGeneratorUtil.CourtType.CORONER, 1
+        );
+    }
 }

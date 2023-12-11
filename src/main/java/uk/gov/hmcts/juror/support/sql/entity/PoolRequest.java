@@ -1,22 +1,32 @@
 package uk.gov.hmcts.juror.support.sql.entity;
 
-import jakarta.persistence.*;
-import jakarta.validation.constraints.NotNull;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import lombok.ToString;
 import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
+import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
+import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.StringSequenceGenerator;
 
 import java.io.Serializable;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.time.temporal.ChronoUnit;
 
-//@Entity
-//@Table(name = "pool", schema = "juror_mod")
+@Entity
+@Table(name = "pool", schema = "juror_mod")
 @NoArgsConstructor
 @Getter
 @Setter
+@ToString
 @GenerateGenerationConfig
 public class PoolRequest implements Serializable {
 
@@ -24,39 +34,32 @@ public class PoolRequest implements Serializable {
 //    @NotNull
     @Column(name = "pool_no")
 //    @Length(max = 9)
+    @StringSequenceGenerator(format = "%09d",
+        sequenceGenerator = @SequenceGenerator(id = "pool_number", start = 1)
+    )
     private String poolNumber;
 
-    /**
-     * Composite primary key. -
-     * owner in conjunction with poolNumber will identify unique records.
-     * generally there will be two records per pool request,
-     * one owned by the court and one owned by the central summonsing bureau.
-     */
-//    @NotNull
+
+    //    @NotNull
     @Column(name = "owner")
 //    @Length(max = 3)
     private String owner;
 
-    /**
-     * Location code for the specific court the pool is being requested for.
-     */
-    private String courtLocation;
+    @ManyToOne
+    @JoinColumn(name = "loc_code", nullable = false)
+    private CourtLocation courtLocation;
 
-    /**
-     * The date the jurors will be required to first attend court to start their service.
-     */
-//    @NotNull
+    //    @NotNull
     @Column(name = "return_date")
+    @LocalDateGenerator(
+        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 1, unit = ChronoUnit.DAYS),
+        maxExclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 14, unit = ChronoUnit.DAYS)
+    )
     private LocalDate returnDate;
 
-    /**
-     * Total number of jurors requested for this pool.
-     */
     @Column(name = "no_requested")
     private Integer numberRequested;
 
-    @ManyToOne
-    @JoinColumn(name = "pool_type")
     private String poolType;
 
     @Column(name = "attend_time")
@@ -69,12 +72,8 @@ public class PoolRequest implements Serializable {
     private LocalDateTime lastUpdate;
 
     @Column(name = "additional_summons")
-
     private Integer additionalSummons;
 
-    /**
-     * Total number of jurors requested for this pool, before subtracting any deferrals used.
-     */
     @Column(name = "total_no_required")
     private int totalNoRequired;
 
@@ -83,8 +82,4 @@ public class PoolRequest implements Serializable {
 
     @Column(name = "date_created", updatable = false)
     private LocalDateTime dateCreated;
-
-    @OneToMany(mappedBy = "pool", cascade = CascadeType.REMOVE)
-    private Set<PoolComment> poolComments;
-
 }

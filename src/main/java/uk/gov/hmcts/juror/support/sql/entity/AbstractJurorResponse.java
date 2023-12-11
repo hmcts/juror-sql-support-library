@@ -7,7 +7,6 @@ import uk.gov.hmcts.juror.support.generation.generators.value.*;
 import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
 import uk.gov.hmcts.juror.support.sql.Constants;
 import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.Address;
-import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.ReplyType;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -18,7 +17,6 @@ import java.time.temporal.ChronoUnit;
 @Table(name = "juror_response", schema = "juror_mod")
 @Getter
 @Setter
-
 public class AbstractJurorResponse extends Address implements Serializable {
 
     @Id
@@ -29,6 +27,10 @@ public class AbstractJurorResponse extends Address implements Serializable {
     private String jurorNumber;
 
     @Column(name = "date_received")
+    @LocalDateGenerator(
+            minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 6, unit = ChronoUnit.MONTHS),
+            maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 2, unit = ChronoUnit.MONTHS)
+    )
     private LocalDate dateReceived;
 
     @Column(name = "title")
@@ -44,6 +46,7 @@ public class AbstractJurorResponse extends Address implements Serializable {
     private String lastName;
 
     @Column(name = "processing_status")
+    @FixedValueGenerator("success")
     private String processingStatus;
 
     @Column(name = "date_of_birth")
@@ -75,30 +78,39 @@ public class AbstractJurorResponse extends Address implements Serializable {
     private String email;
 
     @Column(name = "residency")
+    @FixedValueGenerator("true")
     private Boolean residency;
 
     @Column(name = "mental_health_act")
+    @FixedValueGenerator("false")
     private Boolean mentalHealthAct;
 
     @Column(name = "bail")
+    @FixedValueGenerator("false")
     private Boolean bail;
 
     @Column(name = "convictions")
+    @FixedValueGenerator("false")
     private Boolean convictions;
 
     @Column(name = "thirdparty_reason")
+    @NullValueGenerator
     private String thirdPartyReason;
 
     @Column(name = "reasonable_adjustments_arrangements")
+    @NullValueGenerator
     private String reasonableAdjustmentsArrangements;
 
     @Column(name = "processing_complete")
+    @FixedValueGenerator("false")
     private Boolean processingComplete = Boolean.FALSE;
 
     @Column(name = "completed_at")
+    @NullValueGenerator
     private LocalDate completedAt;
 
     @Column(name = "relationship")
+    @NullValueGenerator
     private String relationship;
 
     //TODO Probably need this later for data integrity
@@ -110,25 +122,23 @@ public class AbstractJurorResponse extends Address implements Serializable {
      * Flag that this response is urgent.
      */
     @Column(name = "urgent")
+    @FixedValueGenerator("false")
     private Boolean urgent;
 
     /**
      * Flag this response as super urgent.
      */
     @Column(name = "super_urgent")
+    @FixedValueGenerator("false")
     private Boolean superUrgent;
 
     /**
      * Flag this response as welsh language.
      */
     @Column(name = "welsh")
+    @FixedValueGenerator("false")
     private Boolean welsh = Boolean.FALSE;
 
-    @ManyToOne
-    @JoinColumn(name = "reply_type")
-    @Getter
-    @Setter
-    private ReplyType replyType;
 
     protected AbstractJurorResponse() {
         // This constructor is intentionally empty. Nothing special is needed here.

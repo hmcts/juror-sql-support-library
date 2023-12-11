@@ -9,10 +9,7 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
-import uk.gov.hmcts.juror.support.generation.generators.value.EmailGenerator;
-import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
-import uk.gov.hmcts.juror.support.generation.generators.value.RegexGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.*;
 import uk.gov.hmcts.juror.support.sql.Constants;
 import uk.gov.hmcts.juror.support.sql.entity.AbstractJurorResponse;
 
@@ -31,50 +28,63 @@ import java.time.temporal.ChronoUnit;
 public class DigitalResponse extends AbstractJurorResponse {
 
     @Column(name = "residency")
-    @Builder.Default
+    @FixedValueGenerator("true")
     private Boolean residency = Boolean.TRUE;
 
     @Column(name = "bail")
-    @Builder.Default
+    @FixedValueGenerator("false")
     private Boolean bail = Boolean.FALSE;
 
     @Column(name = "convictions")
-    @Builder.Default
+    @FixedValueGenerator("false")
     private Boolean convictions = Boolean.FALSE;
 
     @Column(name = "mental_health_act")
-    @Builder.Default
+    @FixedValueGenerator("false")
     private Boolean mentalHealthAct = Boolean.FALSE;
 
     @Column(name = "residency_detail")
+    @FixedValueGenerator("true")
     private String residencyDetail;
 
     @Column(name = "mental_health_act_details")
+    @FixedValueGenerator("false")
     private String mentalHealthActDetails;
 
     @Column(name = "bail_details")
+    @FixedValueGenerator("false")
     private String bailDetails;
 
     @Column(name = "convictions_details")
+    @FixedValueGenerator("false")
     private String convictionsDetails;
 
     @Column(name = "deferral_reason")
+    @FixedValueGenerator("false")
     private String deferralReason;
 
     @Column(name = "deferral_date")
+    @LocalDateGenerator(
+            minInclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 4, unit = ChronoUnit.MONTHS),
+            maxExclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 2, unit = ChronoUnit.WEEKS)
+    )
     private String deferralDate;
 
     @Column(name = "excusal_reason")
+    @FixedValueGenerator("d")
     private String excusalReason;
 
     @Version
     @Column(name = "version")
+    @FixedValueGenerator("1")
     private Integer version;
 
     @Column(name = "thirdparty_fname")
+    @FirstNameGenerator
     private String thirdPartyFName;
 
     @Column(name = "thirdparty_lname")
+    @LastNameGenerator
     private String thirdPartyLName;
 
     @Column(name = "main_phone")
@@ -91,6 +101,7 @@ public class DigitalResponse extends AbstractJurorResponse {
 
     @Column(name = "thirdparty_other_reason")
 //    @Pattern(regexp = NO_PIPES_REGEX)
+    @FixedValueGenerator("ill")
     private String thirdPartyOtherReason;
 
     @Column(name = "juror_phone_details")
@@ -103,7 +114,6 @@ public class DigitalResponse extends AbstractJurorResponse {
     @EmailGenerator
     private Boolean jurorEmailDetails = Boolean.TRUE;
 
-    //TODO May need to change the values
     @Column(name = "staff_assignment_date")
     @LocalDateGenerator(
             minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 5, unit = ChronoUnit.MONTHS),
@@ -113,6 +123,5 @@ public class DigitalResponse extends AbstractJurorResponse {
 
     public DigitalResponse() {
         super();
-        super.setReplyType(new ReplyType("Digital", "Online response"));
     }
 }

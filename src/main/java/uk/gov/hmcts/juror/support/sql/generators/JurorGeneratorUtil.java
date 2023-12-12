@@ -18,6 +18,7 @@ public class JurorGeneratorUtil {
     public static JurorGenerator summoned(boolean isCourtOwned) {
         JurorGenerator generator = createStandard(isCourtOwned);
         generator.setResponded(new FixedValueGeneratorImpl<>(false));
+        generator.setPoliceCheck(new NullValueGeneratorImpl<>());
         return generator;
     }
 

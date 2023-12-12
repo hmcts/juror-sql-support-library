@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.repository.CrudRepository;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
-import uk.gov.hmcts.juror.support.sql.generators.PoolRequestGeneratorUtil;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -14,13 +13,13 @@ import java.util.Map;
 @Slf4j
 public class Util {
 
-    public static <T> T getRandomItemFromWeightMap(Map<T, Integer> weightMap) {
+    public static <T> T getWeightedRandomItem(Map<T, Integer> weightMap) {
         int totalWeight = weightMap.values().stream().mapToInt(Integer::intValue).sum();
         if (totalWeight == 0) {
             return new RandomFromCollectionGeneratorImpl<>(weightMap.keySet()).generate();
         }
 
-        int randomWeight = RandomGenerator.nextInt(0, totalWeight + 1);
+        int randomWeight = RandomGenerator.nextInt(1, totalWeight + 1);
         int currentWeight = 0;
         for (Map.Entry<T, Integer> entry : weightMap.entrySet()) {
             currentWeight += entry.getValue();
@@ -40,6 +39,9 @@ public class Util {
     }
 
     public static <T> void batchSave(CrudRepository<T, ?> repository, List<T> items, int batchSize) {
+        if (items.isEmpty()) {
+            return;
+        }
         List<List<T>> batches = Util.getBatches(items, batchSize);
         log.info("Saving {} items of type {} in {} batches of size {}",
             items.size(), items.get(0).getClass().getSimpleName(),

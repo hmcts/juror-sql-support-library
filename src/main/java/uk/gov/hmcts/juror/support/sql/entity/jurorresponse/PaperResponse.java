@@ -8,8 +8,8 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
+import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
 import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
-import uk.gov.hmcts.juror.support.sql.entity.AbstractJurorResponse;
 
 @Entity
 @AllArgsConstructor
@@ -18,6 +18,7 @@ import uk.gov.hmcts.juror.support.sql.entity.AbstractJurorResponse;
 @Setter
 @Table(name = "juror_response", schema = "juror_mod")
 @EqualsAndHashCode(callSuper = true)
+@GenerateGenerationConfig
 public class PaperResponse extends AbstractJurorResponse {
 
     @Column(name = "mental_health_capacity")

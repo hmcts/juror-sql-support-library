@@ -2,10 +2,11 @@ package uk.gov.hmcts.juror.support.sql.entity.jurorresponse;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.MappedSuperclass;
-import jakarta.validation.constraints.NotBlank;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
+import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
 import uk.gov.hmcts.juror.support.generation.generators.value.NullValueGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromFileGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.RegexGenerator;
@@ -14,18 +15,19 @@ import uk.gov.hmcts.juror.support.sql.Constants;
 import java.io.Serializable;
 
 @MappedSuperclass
+@NoArgsConstructor
 @Getter
 @Setter
 @EqualsAndHashCode
+@GenerateGenerationConfig
 public abstract class Address implements Serializable {
 
     @Column(name = "address_line_1")
-    @NotBlank
-    @RegexGenerator(regex = Constants.ADDRESSONE_REGEX)
+    @RegexGenerator(regex = Constants.ADDRESS_LINE_1_REGEX)
     private String addressLine1;
 
     @Column(name = "address_line_2")
-    @RegexGenerator(regex = Constants.ADDRESSTWO_REGEX)
+    @RegexGenerator(regex = Constants.ADDRESS_LINE_2_REGEX)
     private String addressLine2;
 
     @Column(name = "address_line_3")

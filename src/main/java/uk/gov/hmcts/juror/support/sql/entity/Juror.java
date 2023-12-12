@@ -86,28 +86,12 @@ public class Juror implements Serializable {
 
     //@Audited
     @Column(name = "address_line_1")
-    //@Length(max = 35)
-    //@Pattern(regexp = NO_PIPES_REGEX)
-    //@NotBlank
-    @RegexGenerator(regex = "[0-9]{0,3} [A-Z]{5,10} (Road|Lane|Gate|Close|Avenue|Street|Way|Drive|Gardens|Crescent|"
-        + "Terrace|Place|Hill|Park|View|Court|Square|Walk|Lane|Grove|Gardens|Hill|Hillside|Hilltop|Hollow|"
-        + "House|Housing|Hurst|Industrial|Ings|Island|Islands|Isle|Isles|Junction|Keep|Kings|Knapp|Knoll|"
-        + "Knolls|Lair|Lake|Lakes|Landing|Lane|Lanes|Lawn|Lawns|Lea|Leas|Lee|Lees|Line|Link|Little|Lodge|"
-        + "Loft|Loggia|Long|Lowlands|Main|Manor|Mansion|Manse|Mead|Meadow|Meadows|Meander|Mews|Mill|Mission|"
-        + "Moor|Moorings|Moorland|Mount|Mountain|Mountains|Mound|Mounts|Neuk|Nook|Orchard|Oval|Overlook|"
-        + "Park|Parklands|Parkway|Parade|Paradise|Parc|Parks|Part|Passage|Path|Pathway|Pike|Pines|Place|"
-        + "Plain|Plains|Plaza|Point|Points|Port|Ports|Prairie|Quadrant|Quay|Quays|Ramble|Ramp|Ranch|Rapids|"
-        + "Reach|Reserve|Rest|Retreat|Ridge|Ridges|Rise|River|Rivers|Road|Roads|Route|Row|Rue|Run|Shoal|"
-        + "Shoals|Shore|Shores|Skyline|Slope|Slopes|Spur|Square|Squares|Stairs|Stead|Strand|Stream|Street|"
-        + "Streets|Summit|Terrace|Throughway|Trace|Track|Trafficway|Trail|Trailer|Tunnel|Turnpike|Underpass|"
-        + "Union|Unions|Valley|Valleys|Viaduct|View|Views|Village|Villages|Ville|Vista|Walk|Wall|Way|Ways|")
+    @RegexGenerator(regex = Constants.ADDRESS_LINE_1_REGEX)
     private String addressLine1;
 
     //@Audited
     @Column(name = "address_line_2")
-    //@Length(max = 35)
-    //@Pattern(regexp = NO_PIPES_REGEX)
-    @RegexGenerator(regex = "(Apartment|Suite|Room|Floor|Box) Number [0-9]{1,3}")
+    @RegexGenerator(regex = Constants.ADDRESS_LINE_2_REGEX)
     private String addressLine2;
 
     //@Audited

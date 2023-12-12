@@ -9,9 +9,14 @@ import lombok.Builder;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.Setter;
-import uk.gov.hmcts.juror.support.generation.generators.value.*;
+import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
+import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
+import uk.gov.hmcts.juror.support.generation.generators.value.EmailGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.NullValueGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.RegexGenerator;
 import uk.gov.hmcts.juror.support.sql.Constants;
-import uk.gov.hmcts.juror.support.sql.entity.AbstractJurorResponse;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -24,23 +29,24 @@ import java.time.temporal.ChronoUnit;
 @Setter
 @Table(name = "juror_response", schema = "juror_mod")
 @EqualsAndHashCode(callSuper = true)
+@GenerateGenerationConfig
 public class DigitalResponse extends AbstractJurorResponse {
 
     @Column(name = "residency")
     @FixedValueGenerator("true")
-    private Boolean residency = Boolean.TRUE;
+    private Boolean residency;
 
     @Column(name = "bail")
     @FixedValueGenerator("false")
-    private Boolean bail = Boolean.FALSE;
+    private Boolean bail;
 
     @Column(name = "convictions")
     @FixedValueGenerator("false")
-    private Boolean convictions = Boolean.FALSE;
+    private Boolean convictions;
 
     @Column(name = "mental_health_act")
     @FixedValueGenerator("false")
-    private Boolean mentalHealthAct = Boolean.FALSE;
+    private Boolean mentalHealthAct;
 
     @Column(name = "residency_detail")
     @NullValueGenerator
@@ -72,7 +78,7 @@ public class DigitalResponse extends AbstractJurorResponse {
 
     @Version
     @Column(name = "version")
-    @FixedValueGenerator("1")
+    @NullValueGenerator()
     private Integer version;
 
     @Column(name = "thirdparty_fname")
@@ -96,24 +102,21 @@ public class DigitalResponse extends AbstractJurorResponse {
     private String emailAddress;
 
     @Column(name = "thirdparty_other_reason")
-//    @Pattern(regexp = NO_PIPES_REGEX)
     @NullValueGenerator
     private String thirdPartyOtherReason;
 
     @Column(name = "juror_phone_details")
-    @Builder.Default
-    @RegexGenerator(regex = Constants.PHONE_REGEX)
-    private Boolean jurorPhoneDetails = Boolean.TRUE;
+    @FixedValueGenerator("true")
+    private Boolean jurorPhoneDetails;
 
     @Column(name = "juror_email_details")
     @FixedValueGenerator("true")
-    @EmailGenerator
-    private Boolean jurorEmailDetails = Boolean.TRUE;
+    private Boolean jurorEmailDetails;
 
     @Column(name = "staff_assignment_date")
     @LocalDateGenerator(
-            minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 5, unit = ChronoUnit.MONTHS),
-            maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 12, unit = ChronoUnit.DAYS)
+        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 5, unit = ChronoUnit.MONTHS),
+        maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 12, unit = ChronoUnit.DAYS)
     )
     private LocalDate staffAssignmentDate;
 

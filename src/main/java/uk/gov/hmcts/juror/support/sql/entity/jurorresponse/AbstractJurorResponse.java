@@ -1,12 +1,28 @@
-package uk.gov.hmcts.juror.support.sql.entity;
+package uk.gov.hmcts.juror.support.sql.entity.jurorresponse;
 
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MappedSuperclass;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import uk.gov.hmcts.juror.support.generation.generators.value.*;
+import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
+import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
+import uk.gov.hmcts.juror.support.generation.generators.value.EmailGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.FirstNameGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.LastNameGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.NullValueGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromFileGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.RegexGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.StringSequenceGenerator;
 import uk.gov.hmcts.juror.support.sql.Constants;
-import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.Address;
+import uk.gov.hmcts.juror.support.sql.entity.ProcessingStatus;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -17,19 +33,20 @@ import java.time.temporal.ChronoUnit;
 @Table(name = "juror_response", schema = "juror_mod")
 @Getter
 @Setter
+@GenerateGenerationConfig
 public abstract class AbstractJurorResponse extends Address implements Serializable {
 
     @Id
     @Column(name = "juror_number")
     @StringSequenceGenerator(format = "%09d",
-            sequenceGenerator = @SequenceGenerator(id = "juror_number", start = 1)
+        sequenceGenerator = @SequenceGenerator(id = "juror_number", start = 1)
     )
     private String jurorNumber;
 
     @Column(name = "date_received")
     @LocalDateGenerator(
-            minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 6, unit = ChronoUnit.MONTHS),
-            maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 2, unit = ChronoUnit.MONTHS)
+        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 100, unit = ChronoUnit.DAYS),
+        maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 0, unit = ChronoUnit.DAYS)
     )
     private LocalDate dateReceived;
 
@@ -47,13 +64,13 @@ public abstract class AbstractJurorResponse extends Address implements Serializa
 
     @Column(name = "processing_status")
     @Enumerated(EnumType.STRING)
-    @FixedValueGenerator("ProcessingStatus.TODO")
+    @FixedValueGenerator("uk.gov.hmcts.juror.support.sql.entity.ProcessingStatus.TODO")
     private ProcessingStatus processingStatus = ProcessingStatus.TODO;
 
     @Column(name = "date_of_birth")
     @LocalDateGenerator(
-            minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 75, unit = ChronoUnit.YEARS),
-            maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 18, unit = ChronoUnit.YEARS)
+        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 75, unit = ChronoUnit.YEARS),
+        maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 18, unit = ChronoUnit.YEARS)
     )
     private LocalDate dateOfBirth;
 
@@ -140,6 +157,8 @@ public abstract class AbstractJurorResponse extends Address implements Serializa
     @FixedValueGenerator("false")
     private Boolean welsh = Boolean.FALSE;
 
+    @JoinColumn(name = "reply_type")
+    private String replyType;
 
     protected AbstractJurorResponse() {
         // This constructor is intentionally empty. Nothing special is needed here.

@@ -61,7 +61,7 @@ public class PoolRequestGeneratorUtil {
     }
 
     public static PoolRequestGenerator create(boolean isCourtOwned, Map<CourtType, Integer> courtTypeByWight) {
-        CourtType courtType = Util.getRandomItemFromWeightMap(courtTypeByWight);
+        CourtType courtType = Util.getWeightedRandomItem(courtTypeByWight);
         return create(isCourtOwned, courtType);
     }
 

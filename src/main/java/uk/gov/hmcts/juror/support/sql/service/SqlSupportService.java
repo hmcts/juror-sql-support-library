@@ -271,9 +271,8 @@ public class SqlSupportService {
                     List<JurorAccountDetailsDto> jurors = createJurors(isCourtOwned, entity.getKey(),
                         entity.getValue());
                     addJurorPoolsToJurorAccountDto(isCourtOwned, entity.getKey(), jurors);
-                    addSummonsReplyToJurorAccountDto(0, 1,
-                        entity.getKey(), jurors);//TODO update weights
-
+                    addSummonsReplyToJurorAccountDto(66, 34,
+                        entity.getKey(), jurors);
                     return jurors;
                 }
             )
@@ -281,7 +280,6 @@ public class SqlSupportService {
             .collect(Collectors.toCollection(ArrayList::new));
 
         Collections.shuffle(jurorAccountDetailsDtos);
-
         return jurorAccountDetailsDtos;
     }
 

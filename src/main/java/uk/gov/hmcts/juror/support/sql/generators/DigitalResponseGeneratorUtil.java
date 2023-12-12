@@ -1,8 +1,11 @@
 package uk.gov.hmcts.juror.support.sql.generators;
 
 import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGeneratorImpl;
-import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.DigitalResponseGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.FormattedLocalDateGeneratorImpl;
 import uk.gov.hmcts.juror.support.sql.entity.JurorStatus;
+import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.DigitalResponseGenerator;
+
+import java.time.LocalDate;
 
 public abstract class DigitalResponseGeneratorUtil {
 
@@ -21,22 +24,29 @@ public abstract class DigitalResponseGeneratorUtil {
 
     public static DigitalResponseGenerator excused() {
         DigitalResponseGenerator generator = createStandard();
+        generator.setExcusalReason(new FixedValueGeneratorImpl<>("Child care"));
         JurorResponseGeneratorUtil.excused(generator);
-
         return generator;
     }
 
     public static DigitalResponseGenerator disqualified() {
         DigitalResponseGenerator generator = createStandard();
-        JurorResponseGeneratorUtil.disqualified(generator);
+        generator.setBail(new FixedValueGeneratorImpl<>(true));
 
+        JurorResponseGeneratorUtil.disqualified(generator);
         return generator;
     }
 
     public static DigitalResponseGenerator deferred() {
         DigitalResponseGenerator generator = createStandard();
+        generator.setDeferralReason(new FixedValueGeneratorImpl<>("Holiday"));
+        generator.setDeferralDate(
+            new FormattedLocalDateGeneratorImpl(
+                "dd-MM-YYYY",
+                LocalDate.now().plusDays(1),
+                LocalDate.now().plusDays(180)
+            ));
         JurorResponseGeneratorUtil.deferred(generator);
-
         return generator;
     }
 

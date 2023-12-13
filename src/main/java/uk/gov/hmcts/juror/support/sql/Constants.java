@@ -8,7 +8,8 @@ public class Constants {
 
     public static final String PHONE_REGEX = "^(\\+44|0)7\\d{9}$";
     public static final String NOTES_REGEX = "[A-Za-z0-9]{10,501}";
-    public static final String ADDRESS_LINE_1_REGEX = "[0-9]{0,9} [A-Z]{5,15} (Road|Lane|Gate|Close|Avenue|Street|Way|Drive|Gardens|Crescent|"
+    public static final String ADDRESS_LINE_1_REGEX = "[0-9]{0,3} [A-Z]{3,5} (Road|Lane|Gate|Close|Avenue|Street|Way"
+        + "|Drive|Gardens|Crescent|"
             + "Terrace|Place|Hill|Park|View|Court|Square|Walk|Lane|Grove|Gardens|Hill|Hillside|Hilltop|Hollow|"
             + "House|Housing|Hurst|Industrial|Ings|Island|Islands|Isle|Isles|Junction|Keep|Kings|Knapp|Knoll|"
             + "Knolls|Lair|Lake|Lakes|Landing|Lane|Lanes|Lawn|Lawns|Lea|Leas|Lee|Lees|Line|Link|Little|Lodge|"

@@ -41,11 +41,16 @@ public class PoolRequestGeneratorUtil {
         poolRequestGenerator.setCourtLocation(getCourtLocationGenerator());
         poolRequestGenerator.setPoolType(new FixedValueGeneratorImpl<>(courtType.getCode()));
         if (isCourtOwned) {
-            poolRequestGenerator.setPostGenerate(poolRequest ->
+            poolRequestGenerator.addPostGenerate(poolRequest ->
                 poolRequest.setOwner(poolRequest.getCourtLocation().getOwner()));
+            poolRequestGenerator.setNewRequest(new FixedValueGeneratorImpl<>('T'));
         } else {
-            poolRequestGenerator.setOwner(new FixedValueGeneratorImpl<>("400"));
+            poolRequestGenerator.addPostGenerate(poolRequest -> poolRequest.setOwner("400"));
         }
+        poolRequestGenerator.addPostGenerate(poolRequest -> {
+            CourtLocation  courtLocation = poolRequest.getCourtLocation();
+            poolRequest.setPoolNumber(courtLocation.getLocCode() + poolRequest.getPoolNumber().substring(3));
+        });
         return poolRequestGenerator;
     }
 

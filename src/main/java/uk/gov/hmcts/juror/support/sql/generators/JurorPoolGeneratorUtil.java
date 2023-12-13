@@ -48,9 +48,23 @@ public class JurorPoolGeneratorUtil {
     public static JurorPoolGenerator deferred(boolean isCourtOwned) {
         JurorPoolGenerator jurorPoolGenerator = createStandard(isCourtOwned, JurorStatus.DEFERRED);
         //Next date set to date you are deferred too?? -- check
-        jurorPoolGenerator.setNextDate(new NullValueGeneratorImpl<>());
+        jurorPoolGenerator.setNextDate(new NullValueGeneratorImpl<>());//Only valid for deferral maintenance
         jurorPoolGenerator.setDeferralCode(new RandomFromCollectionGeneratorImpl<>(
             Arrays.stream(ExcusableCode.values()).map(ExcusableCode::getCode).toList()));
+        jurorPoolGenerator.setDeferralDate(new LocalDateGeneratorImpl(
+            LocalDate.now().minusDays(200),
+            LocalDate.now()));
+        //Is active is set to false if you are moved to a new pool else this is still true if you are awaiting new pool
+
+        return jurorPoolGenerator;
+    }
+
+
+    public static JurorPoolGenerator postponed(boolean isCourtOwned) {
+        JurorPoolGenerator jurorPoolGenerator = createStandard(isCourtOwned, JurorStatus.DEFERRED);
+        //Next date set to date you are deferred too?? -- check
+        jurorPoolGenerator.setNextDate(new NullValueGeneratorImpl<>());
+        jurorPoolGenerator.setDeferralCode(new FixedValueGeneratorImpl<>("P"));
         jurorPoolGenerator.setDeferralDate(new LocalDateGeneratorImpl(
             LocalDate.now().minusDays(200),
             LocalDate.now()));

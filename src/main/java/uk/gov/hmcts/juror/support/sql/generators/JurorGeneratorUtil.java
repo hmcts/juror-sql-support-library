@@ -55,7 +55,6 @@ public class JurorGeneratorUtil {
             LocalDate.now().minusDays(200),
             LocalDate.now())
         );
-        generator.setNoDefPos(new FixedValueGeneratorImpl<>(1));
         return generator;
     }
 

@@ -12,6 +12,7 @@ import lombok.Setter;
 import lombok.ToString;
 import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
 import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
+import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.StringSequenceGenerator;
@@ -52,8 +53,9 @@ public class PoolRequest implements Serializable {
     //    @NotNull
     @Column(name = "return_date")
     @LocalDateGenerator(
-        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 1, unit = ChronoUnit.DAYS),
-        maxExclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 14, unit = ChronoUnit.DAYS)
+        minInclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 7, unit = ChronoUnit.DAYS),
+        maxExclusive = @DateFilter(mode = DateFilter.Mode.PLUS, value = 9, unit = ChronoUnit.WEEKS)
+        //TODO Confirm dates with chris
     )
     private LocalDate returnDate;
 
@@ -63,9 +65,15 @@ public class PoolRequest implements Serializable {
     private String poolType;
 
     @Column(name = "attend_time")
+    //TODO
+//    @LocalDateTimeGenerator(
+//        minInclusive = @DateTimeFilter(),
+//        maxExclusive = @DateTimeFilter()
+//    )
     private LocalDateTime attendTime;
 
     @Column(name = "new_request")
+    @FixedValueGenerator("'N'")
     private Character newRequest;
 
     @Column(name = "last_update")

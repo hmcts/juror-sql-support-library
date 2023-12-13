@@ -111,6 +111,8 @@ public class SqlSupportService {
         jurorStatusCountMapCourtTmp.put(JurorStatus.DEFERRED, 100);
         jurorStatusCountMapCourtTmp.put(JurorStatus.EXCUSED, 100);
         //TODO remove end
+
+        //TODO Confirm pool min / max
         createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourtTmp);
 
         log.info("DONE: " + stopWatch.prettyPrint());
@@ -307,19 +309,19 @@ public class SqlSupportService {
         log.info("Creating juror pools with status {} for {} jurors", jurorStatus, jurors.size());
 
         final JurorPoolGenerator jurorPoolGenerator = JurorPoolGeneratorUtil.create(isCourtOwned, jurorStatus);
-        final JurorPoolGenerator respondeedJurorPoolGenerator = JurorPoolGeneratorUtil.create(isCourtOwned,
+        final JurorPoolGenerator respondedJurorPoolGenerator = JurorPoolGeneratorUtil.create(isCourtOwned,
             JurorStatus.RESPONDED);
 
 
         BiFunction<Juror, JurorPool, List<JurorPool>> jurorPoolStatusConsumer = switch (jurorStatus) {
             case TRANSFERRED -> (juror, jurorPool) -> {
-                JurorPool transferredToPool = respondeedJurorPoolGenerator.generate();
+                JurorPool transferredToPool = respondedJurorPoolGenerator.generate();
                 transferredToPool.setJurorNumber(juror.getJurorNumber());
                 transferredToPool.setOwner(Util.getRandomItem(getCourtOwners(), List.of(jurorPool.getOwner())));
                 return List.of(transferredToPool);
             };
             case REASSIGNED -> (juror, jurorPool) -> {
-                JurorPool reassignedToPool = respondeedJurorPoolGenerator.generate();
+                JurorPool reassignedToPool = respondedJurorPoolGenerator.generate();
                 reassignedToPool.setJurorNumber(juror.getJurorNumber());
                 reassignedToPool.setOwner(jurorPool.getOwner());
                 return List.of(reassignedToPool);

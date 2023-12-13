@@ -45,7 +45,7 @@ public abstract class AbstractJurorResponse extends Address implements Serializa
 
     @Column(name = "date_received")
     @LocalDateGenerator(
-        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 100, unit = ChronoUnit.DAYS),
+        minInclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 30, unit = ChronoUnit.DAYS),
         maxExclusive = @DateFilter(mode = DateFilter.Mode.MINUS, value = 0, unit = ChronoUnit.DAYS)
     )
     private LocalDate dateReceived;

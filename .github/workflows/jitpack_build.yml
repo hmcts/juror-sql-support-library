@@ -8,6 +8,19 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16.1
+        env:
+          POSTGRES_DB: support_library
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
     steps:
       - uses: actions/checkout@v4
       - name: Trigger Build in JitPack
@@ -37,3 +50,9 @@ jobs:
             echo "FAILURE: ${STATUS} response from JitPack"
             exit 1
           fi
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER_NAME: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: support_library

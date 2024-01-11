@@ -15,7 +15,7 @@ jobs:
       postgres:
         image: postgres:16.1
         env:
-          POSTGRES_DB: support_library
+          POSTGRES_DB: juror
           POSTGRES_PASSWORD: postgres
         options: >-
           --health-cmd pg_isready
@@ -36,6 +36,5 @@ jobs:
         env:
           DB_HOST: localhost
           DB_PORT: 5432
-          DB_USER_NAME: postgres
+          DB_USERNAME: postgres
           DB_PASSWORD: postgres
-          DB_NAME: support_library

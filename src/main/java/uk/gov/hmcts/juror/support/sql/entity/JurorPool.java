@@ -46,9 +46,6 @@ public class JurorPool implements Serializable {
 //    @Length(max = 3)
     private String owner;
 
-    @Column(name = "ret_date")
-    private LocalDate startDate;
-
     @Column(name = "user_edtq")
 //    @Length(max = 20)
     private String userEdtq;
@@ -64,9 +61,6 @@ public class JurorPool implements Serializable {
 
     @Column(name = "def_date")
     private LocalDate deferralDate;
-
-    @Column(name = "mileage")
-    private Integer mileage;
 
     //    @Length(max = 6)
     @Column(name = "location")
@@ -101,8 +95,6 @@ public class JurorPool implements Serializable {
     @Column(name = "smart_card")
     private String smartCard;
 
-    @Column(name = "amt_spent", precision = 8)
-    private Double amountSpent;
 
     @Column(name = "was_deferred")
     private Boolean wasDeferred;
@@ -120,15 +112,10 @@ public class JurorPool implements Serializable {
     @Column(name = "paid_cash")
     private Boolean paidCash;
 
-    @Column(name = "travel_time", precision = 5)
-    private Double travelTime;
-
     //    @Length(max = 9)
     @Column(name = "scan_code")
     private String scanCode;
 
-    @Column(name = "financial_loss", precision = 8)
-    private Double financialLoss;
 
     @Column(name = "reminder_sent")
     private Boolean reminderSent;

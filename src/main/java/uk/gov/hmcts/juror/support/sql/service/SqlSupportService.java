@@ -20,6 +20,8 @@ import uk.gov.hmcts.juror.support.sql.entity.JurorPoolGenerator;
 import uk.gov.hmcts.juror.support.sql.entity.JurorStatus;
 import uk.gov.hmcts.juror.support.sql.entity.PoolRequest;
 import uk.gov.hmcts.juror.support.sql.entity.PoolRequestGenerator;
+import uk.gov.hmcts.juror.support.sql.entity.User;
+import uk.gov.hmcts.juror.support.sql.entity.UserGenerator;
 import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.AbstractJurorResponse;
 import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.AbstractJurorResponseGenerator;
 import uk.gov.hmcts.juror.support.sql.entity.jurorresponse.DigitalResponse;
@@ -31,21 +33,30 @@ import uk.gov.hmcts.juror.support.sql.generators.JurorGeneratorUtil;
 import uk.gov.hmcts.juror.support.sql.generators.JurorPoolGeneratorUtil;
 import uk.gov.hmcts.juror.support.sql.generators.PaperResponseGeneratorUtil;
 import uk.gov.hmcts.juror.support.sql.generators.PoolRequestGeneratorUtil;
+import uk.gov.hmcts.juror.support.sql.generators.UserGeneratorUtil;
+import uk.gov.hmcts.juror.support.sql.generators.VotersGeneratorUtil;
 import uk.gov.hmcts.juror.support.sql.repository.CourtLocationRepository;
 import uk.gov.hmcts.juror.support.sql.repository.DigitalResponseRepository;
 import uk.gov.hmcts.juror.support.sql.repository.JurorPoolRepository;
 import uk.gov.hmcts.juror.support.sql.repository.JurorRepository;
 import uk.gov.hmcts.juror.support.sql.repository.PaperResponseRepository;
 import uk.gov.hmcts.juror.support.sql.repository.PoolRequestRepository;
+import uk.gov.hmcts.juror.support.sql.repository.UserRepository;
+import uk.gov.hmcts.juror.support.sql.repository.VotersRepository;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.ObjIntConsumer;
 import java.util.stream.Collectors;
 
 @Component
@@ -57,18 +68,24 @@ public class SqlSupportService {
     private final JurorPoolRepository jurorPoolRepository;
     private final DigitalResponseRepository digitalResponseRepository;
     private final PaperResponseRepository paperResponseRepository;
+    private final UserRepository userRepository;
+    private final VotersRepository votersRepository;
     private StopWatch stopWatch;
 
     private final CourtLocationRepository courtLocationRepository;
 
 
     private static final List<CourtLocation> courtLocations;
+    private static final List<User> users;
+    private static final Map<String, List<User>> userMap;
     private static final Set<String> courtOwners;
     private static final int BATCH_SIZE = 100;
 
     static {
         courtLocations = new ArrayList<>();
         courtOwners = new HashSet<>();
+        users = new ArrayList<>();
+        userMap = new HashMap<>();
     }
 
 
@@ -81,15 +98,28 @@ public class SqlSupportService {
     }
 
 
+    //TODO confirm user assignment
+    private RandomFromCollectionGeneratorImpl<User> randomUserGenerator;
+
+    private User getRandomUser() {
+        return randomUserGenerator.generate();
+    }
+
+
     @PostConstruct
     //Temporary for testing purposes
     public void postConstruct() {
         this.stopWatch = new StopWatch();
-        courtLocationRepository.findAll().forEach(courtLocations::add);
-        courtOwners.add("400");
-        courtOwners.add("415");
-        //TODO add back courtLocations.forEach(courtLocation -> courtOwners.add(courtLocation.getOwner()));
         clearDownDatabase();
+        courtLocationRepository.findAll().forEach(courtLocations::add);
+        courtLocations.forEach(courtLocation -> courtOwners.add(courtLocation.getOwner()));
+
+        createAllUsers(5, 1, 40, 5);//TODO confirm counts
+        userRepository.findAll().forEach(users::add);
+        users.forEach(user -> userMap.computeIfAbsent(user.getOwner(), k -> new ArrayList<>()).add(user));
+        randomUserGenerator =
+            new RandomFromCollectionGeneratorImpl<>(users);
+
         Map<JurorStatus, Integer> jurorStatusCountMapCourt = new EnumMap<>(JurorStatus.class);
         jurorStatusCountMapCourt.put(JurorStatus.DEFERRED, 12585);
         jurorStatusCountMapCourt.put(JurorStatus.DISQUALIFIED, 126);
@@ -102,20 +132,62 @@ public class SqlSupportService {
         jurorStatusCountMapCourt.put(JurorStatus.SUMMONED, 56443);
         jurorStatusCountMapCourt.put(JurorStatus.TRANSFERRED, 1075);
 
-        //TODO uncomment createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourt);
+        createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourt);
+
+        Map<JurorStatus, Integer> jurorStatusBureauMapCourt = new EnumMap<>(JurorStatus.class);
+        jurorStatusBureauMapCourt.put(JurorStatus.DEFERRED, 93620);
+        jurorStatusCountMapCourt.put(JurorStatus.DISQUALIFIED, 30319);
+        jurorStatusBureauMapCourt.put(JurorStatus.EXCUSED, 146869);
+        jurorStatusBureauMapCourt.put(JurorStatus.REASSIGNED, 16712);
+        jurorStatusBureauMapCourt.put(JurorStatus.RESPONDED, 240168);
+        jurorStatusBureauMapCourt.put(JurorStatus.SUMMONED, 70288);
+        //TODO undeliverable
+        createJurorsAssociatedToPools(false, 30, 40, jurorStatusBureauMapCourt);
 
         //TODO remove
         Map<JurorStatus, Integer> jurorStatusCountMapCourtTmp = new EnumMap<>(JurorStatus.class);
-        jurorStatusCountMapCourtTmp.put(JurorStatus.SUMMONED, 100);
-        jurorStatusCountMapCourtTmp.put(JurorStatus.RESPONDED, 100);
+        jurorStatusCountMapCourtTmp.put(JurorStatus.SUMMONED, 10000);
+        jurorStatusCountMapCourtTmp.put(JurorStatus.RESPONDED, 10000);
         jurorStatusCountMapCourtTmp.put(JurorStatus.DEFERRED, 100);
         jurorStatusCountMapCourtTmp.put(JurorStatus.EXCUSED, 100);
+//        createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourtTmp);
         //TODO remove end
 
-        //TODO Confirm pool min / max
-        createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourtTmp);
 
         log.info("DONE: " + stopWatch.prettyPrint());
+    }
+
+    private void createAllUsers(int courtStandardCount,
+                                int courtSeniorCount,
+                                int bureauStandardCount,
+                                int bureauTeamLeadCount) {
+        stopWatch.start("Creating users");
+
+        List<User> users = new ArrayList<>();
+
+        ObjIntConsumer<UserGenerator> createUsers = (userGenerator, count) -> {
+            for (int i = 0; i < count; i++) {
+                users.add(userGenerator.generate());
+            }
+        };
+
+        Set<String> courtOwners = courtLocations.stream()
+            .map(CourtLocation::getOwner)
+            .filter(s -> !s.equals("400"))
+            .collect(Collectors.toSet());
+
+        courtOwners.forEach(owner -> {
+            createUsers.accept(UserGeneratorUtil.standardCourtUser(owner), courtStandardCount);
+            createUsers.accept(UserGeneratorUtil.seniorJurorOfficerCourtUser(owner), courtSeniorCount);
+        });
+        createUsers.accept(UserGeneratorUtil.standardBureauUser(), bureauStandardCount);
+        createUsers.accept(UserGeneratorUtil.teamLeadBureauUser(), bureauTeamLeadCount);
+
+        stopWatch.stop();
+        stopWatch.start("Saving users");
+        userRepository.saveAll(users);
+//        Util.batchSave(userRepository, users, BATCH_SIZE);
+        stopWatch.stop();
     }
 
     private void clearDownDatabase() {
@@ -126,6 +198,7 @@ public class SqlSupportService {
         digitalResponseRepository.deleteAll();
         paperResponseRepository.deleteAll();
         jurorRepository.deleteAll();
+        userRepository.deleteAll();
         stopWatch.stop();
         log.info("Clearing database: DONE");
     }
@@ -173,7 +246,6 @@ public class SqlSupportService {
                         jurorPool.setOwner(jurorPool.getOwner());
                         if (jurorPool.getOwner().equals(firstJurorPoolOwner)) {
                             jurorPool.setPoolNumber(poolRequest.getPoolNumber());
-                            jurorPool.setStartDate(poolRequest.getReturnDate());
                         } else {
                             needRandomPool.add(jurorPool);
                         }
@@ -189,7 +261,19 @@ public class SqlSupportService {
         Util.batchSave(poolRequestRepository, pools, BATCH_SIZE);
         stopWatch.stop();
 
+        createVoters(jurorAccountDetailsDtos);
         saveJurorAccountDetailsDtos(jurorAccountDetailsDtos);
+    }
+
+    private void createVoters(List<JurorAccountDetailsDto> jurorAccountDetailsDtos) {
+        stopWatch.start("Creating Voters");
+        jurorAccountDetailsDtos.forEach(jurorAccountDetailsDto ->
+            jurorAccountDetailsDto
+                .setVoters(
+                    VotersGeneratorUtil.fromJurorAccountDetailsDto(jurorAccountDetailsDto).generate()
+                )
+        );
+        stopWatch.stop();
     }
 
     private void saveJurorAccountDetailsDtos(List<JurorAccountDetailsDto> jurorAccountDetailsDtos) {
@@ -223,6 +307,14 @@ public class SqlSupportService {
             jurorAccountDetailsDtos.stream().map(JurorAccountDetailsDto::getJurorPools).flatMap(List::stream).toList(),
             BATCH_SIZE);
         stopWatch.stop();
+
+
+        stopWatch.start("Saving Voter's");
+        log.info("Saving Voter's to database");
+        Util.batchSave(votersRepository,
+            jurorAccountDetailsDtos.stream().map(JurorAccountDetailsDto::getVoters).toList(),
+            BATCH_SIZE);
+        stopWatch.stop();
     }
 
 
@@ -232,7 +324,6 @@ public class SqlSupportService {
         log.info("Creating {} juror responses from jurors", jurors.size());
         DigitalResponseGenerator digitalResponseGenerator = DigitalResponseGeneratorUtil.create(jurorStatus);
         PaperResponseGenerator paperResponseGenerator = PaperResponseGeneratorUtil.create(jurorStatus);
-
         Map<AbstractJurorResponseGenerator<?>, Integer> weightMap = Map.of(
             digitalResponseGenerator, digitalWeight,
             paperResponseGenerator, paperWeight
@@ -263,6 +354,7 @@ public class SqlSupportService {
         jurorResponse.setAddressLine4(juror.getAddressLine4());
         jurorResponse.setAddressLine5(juror.getAddressLine5());
         jurorResponse.setPostcode(juror.getPostcode());
+        jurorResponse.setStaff(getRandomUser());
     }
 
     private List<JurorAccountDetailsDto> createJurorAccountDetailsDtos(boolean isCourtOwned,
@@ -298,7 +390,6 @@ public class SqlSupportService {
             } while (poolRequest.getOwner().equals(jurorPool.getOwner()));
             jurorPool.setOwner(poolRequest.getOwner());
             jurorPool.setPoolNumber(poolRequest.getPoolNumber());
-            jurorPool.setStartDate(poolRequest.getReturnDate());
         }
     }
 

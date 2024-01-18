@@ -5,6 +5,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Table;
 import lombok.Getter;
@@ -23,6 +24,7 @@ import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.StringSequenceGenerator;
 import uk.gov.hmcts.juror.support.sql.Constants;
 import uk.gov.hmcts.juror.support.sql.entity.ProcessingStatus;
+import uk.gov.hmcts.juror.support.sql.entity.User;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -131,10 +133,9 @@ public abstract class AbstractJurorResponse extends Address implements Serializa
     @NullValueGenerator
     private String relationship;
 
-    //TODO Probably need this later for data integrity
-//    @ManyToOne
-//    @JoinColumn(name = "staff_login")
-//    private User staff;
+    @ManyToOne
+    @JoinColumn(name = "staff_login")
+    private User staff;
 
     /**
      * Flag that this response is urgent.

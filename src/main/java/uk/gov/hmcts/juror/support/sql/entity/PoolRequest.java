@@ -13,6 +13,7 @@ import lombok.ToString;
 import uk.gov.hmcts.juror.support.generation.generators.code.GenerateGenerationConfig;
 import uk.gov.hmcts.juror.support.generation.generators.value.DateFilter;
 import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
+import uk.gov.hmcts.juror.support.generation.generators.value.IntRangeGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.SequenceGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.StringSequenceGenerator;
@@ -60,6 +61,7 @@ public class PoolRequest implements Serializable {
     private LocalDate returnDate;
 
     @Column(name = "no_requested")
+    @IntRangeGenerator(minInclusive = 20, maxExclusive = 50)
     private Integer numberRequested;
 
     private String poolType;

@@ -4,13 +4,14 @@ import lombok.Getter;
 @Getter
 public enum ExcusableCode {
 
+
     CRIMINAL_RECORD("K"),
-    DECEASED("D"),
-    OVER_69("V"),
+    //DECEASED("D"),
+    //Disabled  OVER_69("V"),
     RECENTLY_SERVED("S"),
     THE_FORCES("F"),
-    MEDICAL_PROFESSION("H"),
-    POSTPONEMENT_OF_SERVICE("P"),
+    //Disabled  MEDICAL_PROFESSION("H"),
+    //POSTPONEMENT_OF_SERVICE("P"),
     RELIGIOUS_REASONS("R"),
     CHILD_CARE("C"),
     WORK_RELATED("W"),
@@ -20,7 +21,7 @@ public enum ExcusableCode {
     OTHER("O"),
     STUDENT("B"),
     LANGUAGE_DIFFICULTIES("L"),
-    PARLIAMENT_EUROPEAN_ASSEMBLY("E"),
+    //Disabled  PARLIAMENT_EUROPEAN_ASSEMBLY("E"),
     HOLIDAY("Y"),
     CARER("X"),
     FINANCIAL_HARDSHIP("G"),

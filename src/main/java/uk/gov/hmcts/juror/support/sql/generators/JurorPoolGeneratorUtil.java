@@ -127,8 +127,6 @@ public class JurorPoolGeneratorUtil {
         jurorPoolGenerator.setJurorNumber(new FixedValueGeneratorImpl<>(juror.getJurorNumber()));
         jurorPoolGenerator.setPoolNumber(new FixedValueGeneratorImpl<>(pool.getPoolNumber()));
         jurorPoolGenerator.setOwner(new FixedValueGeneratorImpl<>(pool.getOwner()));
-        jurorPoolGenerator.setStartDate(new FixedValueGeneratorImpl<>(pool.getReturnDate()));
-
         return jurorPoolGenerator;
     }
 

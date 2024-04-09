@@ -25,3 +25,4 @@ replay_pid*
 /.gradle/
 /.idea/
 /build/
+/src/main/resources/v2/users.csv

@@ -208,6 +208,7 @@ dependencies {
   implementation group: 'org.apache.commons', name: 'commons-text', version: '1.11.0'
 
   implementation group: 'io.rest-assured', name: 'rest-assured'
+  implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
  
   implementation 'com.github.hmcts:juror-generation-support-library:1.5.1'
   annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.4.0'

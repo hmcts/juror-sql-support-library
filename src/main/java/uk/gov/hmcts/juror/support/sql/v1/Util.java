@@ -49,10 +49,13 @@ public class Util {
             batches.size(), batchSize);
         AtomicLong atomicLong = new AtomicLong(batches.size());
         batches
-            .parallelStream()
+            .stream()
             .forEach(ts -> {
-                repository.saveAll(ts);
                 log.info("Saved batch of {} items {} batches left", ts.size(), atomicLong.decrementAndGet());
+                if(atomicLong.get() > 179){
+                    return;
+                }
+                repository.saveAll(ts);
             });
     }
 

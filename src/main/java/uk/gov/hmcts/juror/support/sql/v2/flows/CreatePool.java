@@ -1,10 +1,11 @@
 package uk.gov.hmcts.juror.support.sql.v2.flows;
 
 import lombok.extern.slf4j.Slf4j;
+import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
 import uk.gov.hmcts.juror.support.sql.v2.flows.enums.PoolType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.PoolRequestDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.RequestPoolControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetails;
+import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsBureau;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -12,13 +13,16 @@ import java.time.LocalDateTime;
 @Slf4j
 public class CreatePool {
 
-    public static PoolRequestDto createPoolOnBehalfOfCourt(String locCode,
-                                                   LocalDateTime attendanceDateTime,
-                                                   PoolType poolType,
-                                                   boolean courtOnly,
-                                                   int numberOfJurorsRequired,
-                                                   int numberOfDeferralsToInclude) {
-        String poolNumber = generatePoolNumber(locCode, attendanceDateTime.toLocalDate());
+    public static PoolRequestDto createPoolOnBehalfOfCourt(
+        DataCreator.User user,
+        String locCode,
+        LocalDateTime attendanceDateTime,
+        PoolType poolType,
+        boolean courtOnly,
+        int numberOfJurorsRequired,
+        int numberOfDeferralsToInclude) {
+
+        String poolNumber = generatePoolNumber(user, locCode, attendanceDateTime.toLocalDate());
 
         PoolRequestDto poolRequestDto = PoolRequestDto.builder()
             .poolNumber(poolNumber)
@@ -34,7 +38,7 @@ public class CreatePool {
 
         new RequestPoolControllerClient()
             .createPoolRequest(
-                new JwtDetails("400"),
+                new JwtDetailsBureau(user),
                 poolRequestDto
             );
         log.info("Pool created with number: " + poolNumber);
@@ -42,9 +46,9 @@ public class CreatePool {
     }
 
 
-    public static String generatePoolNumber(String locCode, LocalDate attendanceDate) {
+    public static String generatePoolNumber(DataCreator.User user, String locCode, LocalDate attendanceDate) {
         return new RequestPoolControllerClient()
-            .generatePoolNumber(new JwtDetails("400")
+            .generatePoolNumber(new JwtDetailsBureau(user)
                     .updateOwnerAndLoc(locCode),
                 locCode, attendanceDate);
     }

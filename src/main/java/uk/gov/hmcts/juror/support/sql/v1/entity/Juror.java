@@ -184,10 +184,6 @@ public class Juror implements Serializable {
     @Column(name = "reasonable_adj_msg")
     private String reasonableAdjustmentMessage;
 
-    //@Length(max = 20)
-    @Column(name = "smart_card")
-    private String smartCard;
-
     @Column(name = "completion_date")
     private LocalDate completionDate;
 

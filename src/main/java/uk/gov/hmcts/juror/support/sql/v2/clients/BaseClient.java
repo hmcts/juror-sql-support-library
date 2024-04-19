@@ -1,16 +1,23 @@
 package uk.gov.hmcts.juror.support.sql.v2.clients;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
 import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetails;
+import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsBureau;
 
 import java.net.URI;
 import java.util.Map;
@@ -19,16 +26,25 @@ import java.util.Map;
 @Slf4j
 public class BaseClient {
 
-    private static final String API_URL = "http://localhost:8080";
+    private static final String API_URL = DataCreator.IS_DEMO
+        ? "https://juror-api.demo.platform.hmcts.net"
+        : "http://localhost:8080";
+
     protected final RestTemplateBuilder restTemplateBuilder;
     protected final RestTemplate restTemplate;
+
+    protected static ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
+
 
     @Autowired
     public BaseClient(RestTemplateBuilder restTemplateBuilder) {
         this.restTemplateBuilder = restTemplateBuilder;
-        this.restTemplate = restTemplateBuilder.build();
+        this.restTemplate = restTemplateBuilder
+            .requestFactory(() -> new HttpComponentsClientHttpRequestFactory())
+            .build();
     }
 
+    @SneakyThrows
     protected <P, R> R triggerApi(
         HttpMethod method,
         String url,
@@ -41,14 +57,18 @@ public class BaseClient {
         headers.add("Authorization", jwtDetails.getJwt());
         HttpEntity<?> requestEntity = new HttpEntity<>(payload, headers);
 
-        log.info("Calling API: {}", createPopulatedUrl(url, pathParams, queryParams));
+        log.info("Calling API: {} {} with payload: {}", method, createPopulatedUrl(url, pathParams, queryParams),
+            mapper.writeValueAsString(payload));
         ResponseEntity<R> response = restTemplate
             .exchange(toUri(url, pathParams, queryParams),
                 method,
                 requestEntity,
                 responseType);
+        if (response.getStatusCode().equals(HttpStatus.GATEWAY_TIMEOUT)) {
+            throw new RuntimeException("timeout");
+        }
         if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Error calling API: {} error {}",url, response.getBody());
+            log.error("Error calling API: {} {} error {}",method, url, response.getBody());
             throw new RuntimeException("Error calling API");
         }
         return response.getBody();
@@ -61,11 +81,18 @@ public class BaseClient {
             builtUrl = new StringBuilder(builtUrl.toString().replace("{" + entry.getKey() + "}", entry.getValue()));
         }
         if (queryParams != null && !queryParams.isEmpty()) {
-            builtUrl.append("?");
+            StringBuilder queryParamsBuilder = new StringBuilder();
             for (Map.Entry<String, String> entry : queryParams.entrySet()) {
-                builtUrl.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+                if (entry.getValue() != null && !entry.getValue().equals("null")) {
+                    queryParamsBuilder.append(entry.getKey()).append("=").append(entry.getValue()).append("&");
+                }
             }
-            builtUrl = new StringBuilder(builtUrl.substring(0, builtUrl.length() - 1));
+            String queryParamsString = queryParamsBuilder.toString();
+            if (StringUtils.isEmpty(queryParamsString)) {
+                return builtUrl.toString();
+
+            }
+            builtUrl.append("?").append(queryParamsString, 0, queryParamsString.length() - 1);
         }
         return builtUrl.toString();
     }

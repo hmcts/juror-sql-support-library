@@ -38,6 +38,12 @@ public class PoolMemberFilterRequestQuery {
     private long pageLimit;
     @JsonProperty("page_number")
     private long pageNumber;
+public enum AttendanceEnum {
+    ON_CALL,
+    ON_A_TRIAL,
+    IN_ATTENDANCE,
+    OTHER,
+}
 public enum SortField {
     JUROR_NUMBER,
     FIRST_NAME,
@@ -47,11 +53,5 @@ public enum SortField {
     ATTENDANCE,
     CHECKED_IN,
     STATUS,
-}
-public enum AttendanceEnum {
-    ON_CALL,
-    ON_A_TRIAL,
-    IN_ATTENDANCE,
-    OTHER,
 }
 }

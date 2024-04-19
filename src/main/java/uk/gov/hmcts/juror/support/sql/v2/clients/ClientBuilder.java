@@ -1,5 +1,9 @@
 package uk.gov.hmcts.juror.support.sql.v2.clients;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.context.ApplicationContext;
@@ -16,20 +20,24 @@ import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandl
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.io.PrintWriter;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Add this class to your spring project to create a list of client classes based on your controller methods
  */
-//@Configuration
+@Configuration
 @Slf4j
 public class ClientBuilder {
 
@@ -37,12 +45,14 @@ public class ClientBuilder {
     private static final String BASE_LOCATION =
         "/Users/benedwards/Desktop/Projects/juror/GitHub/juror-sql-support-library/src/main/java/";
     private static final String BASE_CONTROLLER_PACKAGE = "uk.gov.hmcts.juror.api.moj.controller";
-    private static final String BASE_CLIENT_PACKAGE = "uk.gov.hmcts.juror.support.sql.v2.clients.generated";
+    private static final String GENERATED_LOCATION = "uk.gov.hmcts.juror.support.sql.v2.generated";
+    private static final String BASE_CLIENT_PACKAGE = GENERATED_LOCATION + ".clients";
     private static final Map<String, String> BASE_CLIENT_DTO_PACKAGE = Map.of(
-        "uk.gov.hmcts.juror.api.moj.controller", "uk.gov.hmcts.juror.support.sql.v2.clients.dto",
-        "uk.gov.hmcts.juror.api.moj.domain", "uk.gov.hmcts.juror.support.sql.v2.clients.domain"
+        "uk.gov.hmcts.juror.api.moj.controller", GENERATED_LOCATION + ".dto",
+        "uk.gov.hmcts.juror.api.moj.domain", GENERATED_LOCATION + "uk.gov.hmcts.juror.support.sql.v2.generated.domain"
     );
     Map<Class<?>, List<Map.Entry<RequestMappingInfo, HandlerMethod>>> fileMap = new HashMap<>();
+    Set<Class<?>> classesToGenerate = new HashSet<>();
 
     @EventListener
     public void handleContextRefresh(ContextRefreshedEvent event) {
@@ -67,36 +77,162 @@ public class ClientBuilder {
             });
 
         createFiles(fileMap);
+        createDataClasses(classesToGenerate);
+    }
+
+    private void createDataClasses(Set<Class<?>> classesToGenerate) {
+        log.info("Creating data classes");
+        Set<Class<?>> newClasses = new HashSet<>();
+        for (Class<?> clazz : classesToGenerate) {
+            log.info("Generating: " + clazz.getName());
+            String packageName = typeToDto(clazz.getName()).substring(0, typeToDto(clazz.getName()).lastIndexOf("."));
+            File mainDirectory = new File(BASE_LOCATION + packageToFile(packageName));
+            if (!mainDirectory.exists()) {
+                mainDirectory.mkdirs();
+            }
+            File file = new File(mainDirectory,
+                clazz.getSimpleName() + ".java");
+            if (file.exists()) {
+                file.delete();
+
+            }
+            try {
+                file.createNewFile();
+                newClasses.addAll(writeClassDtoToFile(file, clazz));
+            } catch (Exception e) {
+                log.error("Error creating file", e);
+            }
+        }
+        newClasses.removeAll(classesToGenerate);
+        if (!newClasses.isEmpty()) {
+            createDataClasses(newClasses);
+        }
+    }
+
+    @SneakyThrows
+    private Set<Class<?>> writeClassDtoToFile(File file, Class<?> clazz) {
+        log.info("Writing file: " + file.getAbsoluteFile());
+        Set<Class<?>> newClasses = new HashSet<>();
+        try (FileWriter fileWriter = new FileWriter(file);
+             PrintWriter printWriter = new PrintWriter(fileWriter)) {
+            String packageName = typeToDto(clazz.getName()).substring(0, typeToDto(clazz.getName()).lastIndexOf("."));
+            printWriter.println("package " + packageName + ";");
+            printWriter.println();
+            printWriter.println("import com.fasterxml.jackson.annotation.JsonFormat;");
+            printWriter.println("import com.fasterxml.jackson.annotation.JsonIgnore;");
+            printWriter.println("import com.fasterxml.jackson.annotation.JsonProperty;");
+            printWriter.println("import lombok.AllArgsConstructor;");
+            printWriter.println("import lombok.Builder;");
+            printWriter.println("import lombok.Data;");
+            printWriter.println("import lombok.NoArgsConstructor;");
+            printWriter.println();
+            newClasses.addAll(writeClassString(printWriter, clazz));
+        }
+        return newClasses;
+    }
+
+    private Collection<Class<?>> writeClassString(PrintWriter printWriter, Class<?> clazz) {
+        Set<Class<?>> newClasses = new HashSet<>();
+        if (clazz.isEnum()) {
+            writeEnumString(printWriter, clazz);
+            return newClasses;
+        }
+
+        printWriter.println("@AllArgsConstructor");
+        printWriter.println("@NoArgsConstructor");
+        printWriter.println("@Data");
+        printWriter.println("@Builder");
+        printWriter.println(
+            "public " + (Modifier.isStatic(clazz.getModifiers()) ? "static " : "") + "class " + clazz.getSimpleName() +
+                " {");
+        printWriter.println();
+        for (Field field : clazz.getDeclaredFields()) {
+            log.info("Adding Field: " + field.getName() + " " + field.getType().getName());
+
+            if (field.isAnnotationPresent(JsonIgnore.class)) {
+                JsonIgnore jsonIgnore = field.getAnnotation(JsonIgnore.class);
+                if (jsonIgnore.value()) {
+                    continue;
+                }
+            }
+            if (field.isAnnotationPresent(JsonFormat.class)) {
+                JsonFormat jsonFormat = field.getAnnotation(JsonFormat.class);
+                printWriter.println("    @JsonFormat(pattern = \"" + jsonFormat.pattern() + "\")");
+            }
+
+            if (field.isAnnotationPresent(JsonProperty.class)) {
+                JsonProperty jsonProperty = field.getAnnotation(JsonProperty.class);
+                printWriter.println("    @JsonProperty(\"" + jsonProperty.value() + "\")");
+            }
+
+            printWriter.println(
+                "    private " +
+                    typeToDto(getTypeString(newClasses, field).replaceAll("[A-Za-z0-9.]*\\$", "")) + " "
+                    + field.getName() +
+                    ";");
+        }
+        newClasses.stream()
+            .filter(aClass -> aClass.getName().contains("$"))
+            .forEach(aClass -> newClasses.addAll(writeClassString(printWriter, aClass)));
+
+        newClasses.removeIf(aClass -> aClass.getName().contains("$"));
+        printWriter.println("}");
+        return newClasses;
+    }
+
+    private void writeEnumString(PrintWriter printWriter, Class<?> clazz) {
+        printWriter.println("public enum " + clazz.getSimpleName() + " {");
+        for (Object enumConstants : clazz.getEnumConstants()) {
+            printWriter.println("    " + enumConstants + ",");
+        }
+        printWriter.println("}");
+    }
+
+    private String getTypeString(Set<Class<?>> newClasses, Field field) {
+        Type fieldType = field.getGenericType();
+        if (fieldType instanceof ParameterizedType parameterizedType) {
+            Type[] arguments = parameterizedType.getActualTypeArguments();
+            String[] typeNames = new String[arguments.length];
+            for (int i = 0; i < arguments.length; i++) {
+                typeNames[i] = typeToDto(arguments[i].getTypeName());
+                addToClassesToGenerate(newClasses, arguments[i]);
+            }
+            return typeToDto(parameterizedType.getRawType().getTypeName()) + "<" + String.join(", ", typeNames) + ">";
+        }
+        addToClassesToGenerate(newClasses, fieldType);
+        return fieldType.getTypeName();
     }
 
 
     private void createFiles(Map<Class<?>, List<Map.Entry<RequestMappingInfo, HandlerMethod>>> fileMap) {
         String clientPackageDir = BASE_LOCATION + packageToFile(BASE_CLIENT_PACKAGE) + "/";
-        log.info("TMP: clientPackageDir {}", clientPackageDir);
         File mainDirectory = new File(clientPackageDir);
-        if (mainDirectory.exists()) {
-            deleteDirectory(mainDirectory);
+        if (!mainDirectory.exists()) {
+            mainDirectory.mkdirs();
+//            deleteDirectory(mainDirectory);
         }
-        mainDirectory.mkdirs();
 
         fileMap.forEach((key, value) -> {
-            //TMP
-            if (!key.getName().contains("AdministrationController")) {
+            //TODO TMP
+            if (!key.getName().contains("DisqualifyJurorController333")) {
                 return;
             }
             File file = new File(mainDirectory,
                 packageToFile(key.getName().replace(BASE_CONTROLLER_PACKAGE, "")) + "Client.java");
-            if (!file.exists()) {
-                try {
-                    file.createNewFile();
-                    writeToFile(file, key, value);
-                } catch (Exception e) {
-                    log.error("Error creating file", e);
-                }
+            if (file.exists()) {
+                file.delete();
             }
+            try {
+                file.createNewFile();
+                writeToFile(file, key, value);
+            } catch (Exception e) {
+                log.error("Error creating file", e);
+            }
+
         });
     }
 
+    @SneakyThrows
     private void writeToFile(File file, Class<?> key, List<Map.Entry<RequestMappingInfo, HandlerMethod>> value) {
         try (FileWriter fileWriter = new FileWriter(file);
              PrintWriter printWriter = new PrintWriter(fileWriter)) {
@@ -107,20 +243,17 @@ public class ClientBuilder {
             printWriter.println();
             printWriter.println("import org.springframework.beans.factory.annotation.Autowired;");
             printWriter.println("import org.springframework.boot.web.client.RestTemplateBuilder;");
+            printWriter.println("import org.springframework.core.ParameterizedTypeReference;");
             printWriter.println("import org.springframework.http.HttpMethod;");
-            printWriter.println("import org.springframework.stereotype.Component;");
             printWriter.println("import uk.gov.hmcts.juror.support.sql.v2.clients.BaseClient;");
             printWriter.println("import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetails;");
             printWriter.println();
             printWriter.println("import java.util.Map;");
             printWriter.println();
-            printWriter.println("@Component");
             printWriter.println("public class " + key.getSimpleName() + "Client extends BaseClient {");
             printWriter.println();
-            printWriter.println("    @Autowired");
-            printWriter.println("    public " + key.getSimpleName() + "Client(RestTemplateBuilder "
-                + "restTemplateBuilder) {");
-            printWriter.println("        super(restTemplateBuilder);");
+            printWriter.println("    public " + key.getSimpleName() + "Client() {");
+            printWriter.println("        super(uk.gov.hmcts.juror.support.sql.v2.DataCreator.restTemplateBuilder);");
             printWriter.println("    }");
             printWriter.println();
             for (Map.Entry<RequestMappingInfo, HandlerMethod> entry : value) {
@@ -128,8 +261,6 @@ public class ClientBuilder {
                 printWriter.println();
             }
             printWriter.println("}");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
         }
     }
 
@@ -142,10 +273,16 @@ public class ClientBuilder {
             (Class<?>) returnTypeParamType.getRawType())) {
             returnType = ((ParameterizedType) returnType).getActualTypeArguments()[0];
         }
+        if (returnType.getTypeName().equals("?")) {
+            returnType = Object.class;
+        }
+        addToClassesToGenerate(classesToGenerate, returnType);
+
         String returnTypeString = typeToDto(returnType.getTypeName());
         StringBuilder builder = new StringBuilder();
 
-        if (returnTypeString.equals(Void.class.getName())) {
+        boolean isVoid = returnTypeString.equals("void");
+        if (isVoid) {
             builder.append("    public void ");
         } else {
             builder.append("    public ").append(returnTypeString).append(" ");
@@ -157,20 +294,21 @@ public class ClientBuilder {
         Map<String, String> queryParams = new HashMap<>();
         String payloadName = "null";
         for (Parameter parameter : handlerMethod.getMethod().getParameters()) {
-
+//            if (parameter.getType().isAssignableFrom(BureauJwtPayload.class)
+//                || parameter.getType().isAssignableFrom(BureauJwtAuthentication.class)) {
+//                continue;
+//            }
+            addToClassesToGenerate(classesToGenerate, parameter.getParameterizedType());
             params.add(typeToDto(parameter.getType().getName()) + " " + parameter.getName());
             if (parameter.isAnnotationPresent(PathVariable.class)) {
                 PathVariable pathVariable = parameter.getAnnotation(PathVariable.class);
-                pathParams.put(
-                    StringUtils.isBlank(pathVariable.name()) ?
-                        pathVariable.value() : pathVariable.name(),
+                pathParams.put(getFirstNoneBlank(pathVariable.value(), pathVariable.name(), parameter.getName()),
                     "String.valueOf(" + parameter.getName() + ")");
             }
             if (parameter.isAnnotationPresent(RequestParam.class)) {
                 RequestParam requestParam = parameter.getAnnotation(RequestParam.class);
                 queryParams.put(
-                    StringUtils.isBlank(requestParam.name()) ?
-                        requestParam.value() : requestParam.name(),
+                    getFirstNoneBlank(requestParam.value(), requestParam.name(), parameter.getName()),
                     "String.valueOf(" + parameter.getName() + ")");
             }
             if (parameter.isAnnotationPresent(RequestBody.class)) {
@@ -179,7 +317,8 @@ public class ClientBuilder {
         }
         builder.append(String.join(",\n", params));
         builder.append(") {\n");
-        if (returnTypeString.equals(Void.class.getName())) {
+
+        if (isVoid) {
             builder.append("        triggerApiVoidReturn(\n");
         } else {
             builder.append("        return triggerApi(\n");
@@ -192,23 +331,64 @@ public class ClientBuilder {
         builder.append("            ").append(payloadName).append(",\n");
         builder.append("            Map.of(");
         if (!pathParams.isEmpty()) {
-            builder.append("\"").append(pathParams.keySet().iterator().next()).append("\", ")
-                .append(pathParams.values().iterator().next());
+            for (Map.Entry<String, String> pathParam : pathParams.entrySet()) {
+                builder.append("\"").append(pathParam.getKey()).append("\", ")
+                    .append(pathParam.getValue()).append(",\n");
+            }
+            builder.delete(builder.length() - 2, builder.length());
         }
         builder.append("),\n");
         builder.append("            Map.of(");
         if (!queryParams.isEmpty()) {
-            builder.append("\"").append(queryParams.keySet().iterator().next()).append("\", ")
-                .append(queryParams.values().iterator().next());
+            for (Map.Entry<String, String> queryParam : queryParams.entrySet()) {
+                builder.append("\"").append(queryParam.getKey()).append("\", ")
+                    .append(queryParam.getValue()).append(",\n");
+            }
+            builder.delete(builder.length() - 2, builder.length());
         }
         builder.append("),\n");
-        builder.append("            jwtDetails,\n");
-        builder.append("            new ParameterizedTypeReference<>() {}\n");
+        builder.append("            jwtDetails");
+        if (!isVoid) {
+            builder.append(",\n            new ParameterizedTypeReference<>() {}\n");
+        }
         builder.append("        );\n");
 
 
         builder.append("}");
         return builder.toString();
+    }
+
+    @SneakyThrows
+    private void addToClassesToGenerate(Set<Class<?>> classesToGenerate, Type returnType) {
+        if (returnType.getTypeName().equals("void")
+            || !returnType.getTypeName().startsWith("uk.gov.hmcts.juror")
+            || returnType.getClass().isPrimitive()) {
+            return;
+        }
+        if (returnType instanceof ParameterizedType returnTypeParamType) {
+            for (Type type : returnTypeParamType.getActualTypeArguments()) {
+                addToClassesToGenerate(classesToGenerate, type);
+            }
+            return;
+        }
+        if (returnType.getTypeName().endsWith("[]")) {
+            returnType = Class.forName(returnType.getTypeName().replace("[]", ""));
+        }
+        if (returnType.getTypeName().endsWith("<>")) {
+            returnType = Class.forName(returnType.getTypeName().replace("<>", ""));
+        }
+        log.info("Adding to classes to generate: " + returnType.getTypeName());
+        classesToGenerate.add(Class.forName(returnType.getTypeName()));
+
+    }
+
+    private String getFirstNoneBlank(String... values) {
+        for (String value : values) {
+            if (StringUtils.isNotBlank(value)) {
+                return value;
+            }
+        }
+        return "";
     }
 
 
@@ -217,11 +397,13 @@ public class ClientBuilder {
     }
 
     private String typeToDto(final String typeName) {
-        String paramTypeName = typeName;
-        for (Map.Entry<String, String> dtoPackage : BASE_CLIENT_DTO_PACKAGE.entrySet()) {
-            paramTypeName = paramTypeName.replace(dtoPackage.getKey(), dtoPackage.getValue());
+        if (!typeName.startsWith("uk.gov.hmcts.juror")) {
+            return typeName;
         }
-        return paramTypeName;
+//        for (Map.Entry<String, String> dtoPackage : BASE_CLIENT_DTO_PACKAGE.entrySet()) {
+//            paramTypeName = paramTypeName.replace(dtoPackage.getKey(), dtoPackage.getValue());
+//        }
+        return typeName.replace("uk.gov.hmcts.juror", GENERATED_LOCATION);
     }
 
 

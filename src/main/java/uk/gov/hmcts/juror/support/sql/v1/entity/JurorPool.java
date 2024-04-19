@@ -5,6 +5,8 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.IdClass;
 import jakarta.persistence.Table;
+import jakarta.persistence.Transient;
+import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -16,6 +18,7 @@ import uk.gov.hmcts.juror.support.generation.generators.value.DateTimeFilter;
 import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateTimeGenerator;
 import uk.gov.hmcts.juror.support.generation.generators.value.TimeFilter;
+import uk.gov.hmcts.juror.support.sql.v1.repository.PoolRequestRepository;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -45,6 +48,19 @@ public class JurorPool implements Serializable {
     @Column(name = "owner")
 //    @Length(max = 3)
     private String owner;
+
+
+    @Getter(AccessLevel.NONE)
+    @Transient
+    private String locCode;
+
+
+    public String getLocCode(PoolRequestRepository poolRequestRepository) {
+        if (locCode == null) {
+            locCode = poolRequestRepository.findById(poolNumber).get().getCourtLocation().getLocCode();
+        }
+        return locCode;
+    }
 
     @Column(name = "user_edtq")
 //    @Length(max = 20)

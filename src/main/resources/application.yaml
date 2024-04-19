@@ -52,7 +52,7 @@ uk:
     hmcts:
       juror:
         security:
-          secret: ${JUROR_SECURITY_SECRET:W3N1cGVyLXNlY3JldC1rZXktYnVyZWF1XVtzdXBlci1zZWNyZXQta2V5LWJ1cmVhdV1bc3VwZXItc2VjcmV0LWtleS1idXJlYXVd}
+          secret: tbc
 azure:
   application-insights:
     instrumentation-key: ${juror.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}

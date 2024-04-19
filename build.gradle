@@ -210,7 +210,7 @@ dependencies {
   implementation group: 'io.rest-assured', name: 'rest-assured'
   implementation 'org.apache.httpcomponents.client5:httpclient5:5.3.1'
  
-  implementation 'com.github.hmcts:juror-generation-support-library:1.5.1'
+  implementation 'com.github.hmcts:juror-generation-support-library:1.5.2'
   annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.4.0'
   implementation 'org.projectlombok:lombok:1.18.30'
   annotationProcessor 'org.projectlombok:lombok:1.18.30'

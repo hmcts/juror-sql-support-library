@@ -1,7 +1,6 @@
 package uk.gov.hmcts.juror.support.sql.v2;
 
 
-import io.jsonwebtoken.lang.Collections;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -11,43 +10,30 @@ import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.hmcts.juror.support.generation.generators.code.Generator;
 import uk.gov.hmcts.juror.support.generation.generators.value.FirstNameGeneratorImpl;
-import uk.gov.hmcts.juror.support.generation.generators.value.FixedValueGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.generators.value.LastNameGeneratorImpl;
-import uk.gov.hmcts.juror.support.generation.generators.value.LocalDateGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.generators.value.LocalTimeGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorWeightedImpl;
-import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromFileGeneratorImpl;
-import uk.gov.hmcts.juror.support.generation.generators.value.RegexGeneratorImpl;
-import uk.gov.hmcts.juror.support.generation.generators.value.ValueGenerator;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
-import uk.gov.hmcts.juror.support.sql.v1.Util;
+import uk.gov.hmcts.juror.support.sql.v1.entity.CourtLocation;
 import uk.gov.hmcts.juror.support.sql.v1.entity.Juror;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPool;
 import uk.gov.hmcts.juror.support.sql.v1.entity.PoliceCheck;
 import uk.gov.hmcts.juror.support.sql.v1.entity.PoolRequest;
+import uk.gov.hmcts.juror.support.sql.v1.repository.CourtLocationRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.JurorPoolRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.JurorRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.PoolRequestRepository;
-import uk.gov.hmcts.juror.support.sql.v2.flows.CreatePool;
 import uk.gov.hmcts.juror.support.sql.v2.flows.enums.PoolType;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.bureau.controller.request.BureauResponseStatusUpdateDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.juror.controller.request.JurorResponseDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.juror.domain.ProcessingStatus;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.CompleteServiceJurorNumberListDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.DeferralReasonRequestDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.ExcusalDecisionDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.JurorAppearanceDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.JurorPaperResponseDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.PoliceCheckStatusDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.PoolCreateRequestDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.PoolRequestDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.ApproveExpenseDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.ExpenseItemsDto;
@@ -57,7 +43,6 @@ import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.ex
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpenseTime;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpenseTravel;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.jurormanagement.UpdateAttendanceDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.summonsmanagement.DisqualifyJurorDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.trial.CreatePanelDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.trial.EndTrialDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.trial.JurorDetailRequestDto;
@@ -66,71 +51,53 @@ import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.tr
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.trial.TrialDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.response.expense.PendingApprovalList;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.response.trial.TrialSummaryDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.domain.ExcusalDecision;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.domain.IJurorStatus;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.domain.administration.CourtRoomDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.domain.administration.JudgeCreateDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.AppearanceStage;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.DisqualifyCodeEnum;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.FoodDrinkClaimType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.PayAttendanceType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.PaymentMethod;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.ReplyMethod;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.jurormanagement.UpdateAttendanceStatus;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.trial.PanelResult;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.trial.TrialType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.AdministrationCourtRoomControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.AdministrationJudgeControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.CompleteServiceControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.CreatePoolControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.DeferralMaintenanceControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.DisqualifyJurorControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.ExcusalResponseControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.JurorExpenseControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.JurorManagementControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.JurorPaperResponseControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.JurorRecordControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.JurorResponseControllerClient;
-import uk.gov.hmcts.juror.support.sql.v2.generated.clients.PublicEndpointControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.TrialControllerClient;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.trial.PanelControllerClient;
+import uk.gov.hmcts.juror.support.sql.v2.generation.CreatePools;
+import uk.gov.hmcts.juror.support.sql.v2.generation.Voters;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.CourtDetails;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.CourtRoom;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.Judge;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.User;
 import uk.gov.hmcts.juror.support.sql.v2.spring.dto.JurorNumberLocCodeAndDate;
-import uk.gov.hmcts.juror.support.sql.v2.spring.dto.ToBeClosed;
 import uk.gov.hmcts.juror.support.sql.v2.spring.entity.Appearance;
-import uk.gov.hmcts.juror.support.sql.v2.spring.entity.CourtRoomEntity;
 import uk.gov.hmcts.juror.support.sql.v2.spring.entity.JurorTrialWithTrial;
 import uk.gov.hmcts.juror.support.sql.v2.spring.entity.RequirePncCheckViewEntity;
 import uk.gov.hmcts.juror.support.sql.v2.spring.entity.Trial;
-import uk.gov.hmcts.juror.support.sql.v2.spring.entity.VotersV2;
-import uk.gov.hmcts.juror.support.sql.v2.spring.entity.VotersV2Generator;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.AppearanceRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.CourtroomRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.JudgeRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.JurorTrialWithTrialRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.RequirePncCheckViewRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.TrialRepository;
-import uk.gov.hmcts.juror.support.sql.v2.spring.repository.VotersV2Repository;
-import uk.gov.hmcts.juror.support.sql.v2.support.Constants;
-import uk.gov.hmcts.juror.support.sql.v2.support.ExcusalCodeEnum;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.UserV2Repository;
 import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsBureau;
-import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsPublic;
-import uk.gov.hmcts.juror.support.sql.v2.support.ReasonableAdjustmentsEnum;
 import uk.gov.hmcts.juror.support.sql.v2.support.Role;
-import uk.gov.hmcts.juror.support.sql.v2.support.RollingList;
 import uk.gov.hmcts.juror.support.sql.v2.support.UserType;
 
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -151,75 +118,37 @@ public class DataCreator {
     //Step 6: Transfer pools to court owned
     //Step 7 run court checks
 
-
-    public static final boolean IS_DEMO = true;
+    public static final Environment ENV = Environment.PVT;
     private static final User SYSTEM_USER = new User("AUTO", "400", UserType.SYSTEM, Set.of());
-    public static String publicJwtSecret = IS_DEMO
-        ? "tbc"
-        : "tbc";
-    final boolean createVoters = false;
-    final boolean createJudges = false;
-    final boolean createCourtrooms = false;
-    final boolean createPools = false;
 
-    final boolean assignPoliceChecks = false;
-    final boolean runCourtSteps = true; //TODO step 7
-    //    final int numberOfJurorsPerPool = 10;
-    final int numberOfJurorsPerPool = 100; //100
-    final int totalPool = 50;
-    //    final int totalPool = 1000;
-    final int numberOfDeferrals = 200;
-    final boolean createDeferralPools = false;
-    public static double paperChange = 0.5;
 
 
     public static RestTemplateBuilder restTemplateBuilder;
-    public static String jwtSecret = IS_DEMO
-        ? "tbc"
-        : "tbc";
-    private final VotersV2Repository votersRepository;
     private final JurorPoolRepository jurorPoolRepository;
     private final JurorRepository jurorRepository;
     private final PoolRequestRepository poolRequestRepository;
     private final RequirePncCheckViewRepository requirePncCheckViewRepository;
     private final AppearanceRepository appearanceRepository;
     private final JurorTrialWithTrialRepository jurorTrialWithTrialRepository;
+    private final CourtLocationRepository courtLocationRepository;
 
     private final TrialRepository trialRepository;
     private final JudgeRepository judgeRepository;
     private final CourtroomRepository courtroomRepository;
     private final PlatformTransactionManager transactionManager;
+    private final UserV2Repository userRepository;
+    private final CreatePools createPools;
     private TransactionTemplate transactionTemplate;
-    private static final int BATCH_SIZE = 5000;
 
-    private final LocalDateGeneratorImpl dateOfBirthGenerator = new LocalDateGeneratorImpl(
-        LocalDate.now().minusYears(75),
-        LocalDate.now().minusYears(18));
-    private final RegexGeneratorImpl phoneGenerator = new RegexGeneratorImpl(false, Constants.PHONE_REGEX);
-    private final RegexGeneratorImpl phoneGenerator2 = new RegexGeneratorImpl(false, "[0-9]{8,15}");
-
-    private final RandomFromFileGeneratorImpl emailSuffixGenerator =
-        new RandomFromFileGeneratorImpl("data/emailsSuffix.txt");
 
     final List<CourtLoc> courts = new ArrayList<>();
 
     public final static CourtLoc BUREAU_COURT_LOC = new CourtLoc("400", List.of("400"), List.of(),
         null,
-        List.of(
-            new User("bethany.clarke", "400", UserType.BUREAU, Set.of()),
-            new User("luke.murgatroyd", "400", UserType.BUREAU, Set.of()),
-            new User("dawn.fensom", "400", UserType.BUREAU, Set.of()),
-            new User("Mikaela.Harrison", "400", UserType.BUREAU, Set.of(Role.TEAM_LEADER)),
-            new User("Chelsey.Reed", "400", UserType.BUREAU, Set.of(Role.TEAM_LEADER)),
-            new User("Pamela.Collins", "400", UserType.BUREAU, Set.of(Role.TEAM_LEADER)),
-            new User("Katie.Wardle", "400", UserType.BUREAU, Set.of(Role.TEAM_LEADER))
-        ),
+        null,
         null,
         null
     );
-
-
-    private final List<LocalDate> poolDates;
 
     private final RandomFromCollectionGeneratorWeightedImpl<PoolType> poolTypeGenerator =
         new RandomFromCollectionGeneratorWeightedImpl<>(Map.of(
@@ -229,28 +158,25 @@ public class DataCreator {
         ));
 
 
-    private final RandomFromCollectionGeneratorImpl<LocalDate> poolStartDatesGen;
-
-    public User getRandomBureauUser() {
-        return new RandomFromCollectionGeneratorImpl<>(BUREAU_COURT_LOC.getUsernames()).generate();
-    }
+    private final Voters voters;
 
     @Autowired
     public DataCreator(RestTemplateBuilder restTemplateBuilder,
-                       @Value("${uk.gov.hmcts.juror.security.secret}")
-                       String jwtSecret,
-                       VotersV2Repository votersRepository,
+                       Voters voters,
                        JurorPoolRepository jurorPoolRepository,
                        JurorRepository jurorRepository,
                        PoolRequestRepository poolRequestRepository,
                        RequirePncCheckViewRepository requirePncCheckViewRepository,
                        AppearanceRepository appearanceRepository,
                        JurorTrialWithTrialRepository jurorTrialWithTrialRepository, TrialRepository trialRepository,
+                       CourtLocationRepository courtLocationRepository,
                        JudgeRepository judgeRepository,
                        CourtroomRepository courtroomRepository,
-                       PlatformTransactionManager transactionManager) {
+                       PlatformTransactionManager transactionManager, UserV2Repository userRepository,
+                       CreatePools createPools) {
         DataCreator.restTemplateBuilder = restTemplateBuilder;
-        this.votersRepository = votersRepository;
+        this.voters = voters;
+
         this.jurorPoolRepository = jurorPoolRepository;
         this.jurorRepository = jurorRepository;
         this.poolRequestRepository = poolRequestRepository;
@@ -262,34 +188,15 @@ public class DataCreator {
         this.courtroomRepository = courtroomRepository;
         this.transactionManager = transactionManager;
         this.transactionTemplate = new TransactionTemplate(transactionManager);
+        this.courtLocationRepository = courtLocationRepository;
 
 //        this.poolDates = new LocalDateGeneratorImpl(LocalDate.now(), LocalDate.now().plusYears(1).minusMonths(1))
 //            .addPostGenerate(localDate -> {
 //                return localDate.with(TemporalAdjusters.next(DayOfWeek.MONDAY));
 //            })
 //            .generate(20L);
-
-
-        this.poolDates = new ArrayList<>();
-        this.poolDates.addAll(
-            List.of(
-                LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(1).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(1).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(2).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(3).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(4).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(5).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(6).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(7).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().plusWeeks(8).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-
-                LocalDate.now().minusWeeks(1).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().minusWeeks(2).with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalDate.now().minusWeeks(3).with(TemporalAdjusters.next(DayOfWeek.MONDAY))
-            ));
-        this.poolStartDatesGen =
-            new RandomFromCollectionGeneratorImpl<>(poolDates);
+        this.userRepository = userRepository;
+        this.createPools = createPools;
     }
 
     @Getter
@@ -325,32 +232,6 @@ public class DataCreator {
         }
     }
 
-    @AllArgsConstructor
-    @Getter
-    public static class Judge {
-        long id;
-    }
-
-    @AllArgsConstructor
-    @Getter
-    public static class CourtRoom {
-        long id;
-    }
-
-    @RequiredArgsConstructor
-    @Getter
-    public static class User {
-        final String username;
-        final String owner;
-        List<String> courts = new ArrayList<>();
-        final UserType userType;
-        final Collection<Role> roles;
-
-        public User addCourt(String court) {
-            courts.add(court);
-            return this;
-        }
-    }
 
     Map<String, CourtLoc> courtLocMap = null;
 
@@ -369,172 +250,66 @@ public class DataCreator {
         return courtLocMap;
     }
 
+    private void addBureauUsers() {
+        //TODO
+    }
+
+    private void addCourts() {
+        for (CourtLocation courtLocation : courtLocationRepository.findAllByOwnerEqualsLocCode()) {
+            log.info("Loading Court details for: " + courtLocation.getOwner());
+            List<CourtLocation> courts = courtLocationRepository.findAllByOwner(courtLocation.getOwner());
+            ENV.getCourts().add(
+                CourtDetails.builder()
+                    .courtCode(courtLocation.getOwner())
+                    .locCodes(courts.stream().map(CourtLocation::getLocCode).collect(Collectors.toList()))
+                    .catchmentAreas(CourtDetails.getCatchmentAreas(courtLocation.getOwner()))
+                    .usernames(userRepository.findAllWithCourt(courtLocation.getOwner())
+                        .stream().map(User::new).toList())
+                    .judges(judgeRepository.findAllByOwner(courtLocation.getOwner())
+                        .stream()
+                        .map(Judge::new)
+                        .toList())
+                    .build()
+            );
+        }
+        log.info("Court details loaded.");
+    }
+
     @PostConstruct
     public void init() {
         try {
             log.info("DataCreator created");
-            if (false) {
-            appearanceRepository.deleteAll(appearanceRepository.getToBeClosed()
-                .stream()
-                .map(ToBeClosed::new)
-                .map(toBeClosed -> appearanceRepository
-                    .findAllByPoolNumberAndJurorNumberAndAttendanceDateAndAppearanceStageIsNull(
-                        toBeClosed.getPoolNumber(),
-                        toBeClosed.getJurorNumber(),
-                        toBeClosed.getAttendanceDate()
-                    ))
-                .toList());
-            log.info("DataCreator Done");
+            addBureauUsers();
+            addCourts();
+            DataCreator.ENV.setup();//Required at start
+
+            ENV.getCourts().forEach(courtDetails -> System.out.println("TMP: Court: " + courtDetails));
+
+
+            if (ENV.isCreateVoters()) {
+                this.voters.createVoters(DataCreator.ENV.getCourts(), 10_000);
                 return;
             }
 
-            courts.add(new CourtLoc("433", List.of("433"), List.of("AA1", "AA2", "AA3"),
-                new User("expense.approve.433", "433", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(
-                    new User("Mary.panchal", "433", UserType.COURT, Set.of(Role.MANAGER)),
-                    new User("Claire.sutton", "433", UserType.COURT, Set.of(Role.MANAGER)),
-                    new User("Sarah.Ravenscroft", "433", UserType.COURT, Set.of()),
-                    new User("Holly.murphy2", "433", UserType.COURT, Set.of()),
-                    new User("Hayden.thompson", "433", UserType.COURT, Set.of()),
-                    new User("Ian.edwards6", "433", UserType.COURT, Set.of())
-                ),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("411", List.of("411", "441"), List.of("BB1", "BB2", "BB3"),
-                new User("expense.approve.411", "411", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("catherine.rees", "411", UserType.COURT, Set.of(Role.MANAGER)),
-                    new User("janet.page", "411", UserType.COURT, Set.of()),
-                    new User("lynette.howells", "411", UserType.COURT, Set.of()),
-                    new User("Amy.Lineham", "411", UserType.COURT, Set.of()),
-                    new User("isabelle.davies", "411", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()
-            ));
-            courts.add(new CourtLoc("426", List.of("426", "754"), List.of("CC1", "CC2", "CC3"),
-                new User("expense.approve.426", "426", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Zoe.Wickham", "426", UserType.COURT, Set.of(Role.MANAGER))),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("419", List.of("419"), List.of("DD1", "DD2", "DD3"),
-                new User("expense.approve.419", "419", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("fiona.edwards", "419", UserType.COURT, Set.of(Role.MANAGER))),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("454", List.of("454"), List.of("EE1", "EE2", "EE3"),
-                new User("expense.approve.454", "454", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Fiona.Bryan", "454", UserType.COURT, Set.of()),
-                    new User("Carolina.dejesus", "454", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("412", List.of("412"), List.of("FF1", "FF2", "FF3"),
-                new User("expense.approve.412", "412", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("michelle.stealey", "412", UserType.COURT, Set.of()),
-                    new User("lynn.ellison", "412", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("432", List.of("432", "249"), List.of("GG1", "GG2", "GG3"),
-                new User("expense.approve.432", "432", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(
-                    new User("ruth.green", "432", UserType.COURT, Set.of(Role.MANAGER, Role.SENIOR_JUROR_OFFICER))),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("445", List.of("445"), List.of("HH1", "HH2", "HH3"),
-                new User("expense.approve.445", "445", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Steven.Chen", "445", UserType.COURT, Set.of(Role.SENIOR_JUROR_OFFICER))),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("470", List.of("470"), List.of("KK1", "KK2", "KK3"),
-                new User("expense.approve.470", "470", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("kathryn.isherwood", "470", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("415", List.of("415", "462", "767"), List.of("LL1", "LL2", "LL3"),
-                new User("expense.approve.415", "415", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Jean.Spindler", "415", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("423", List.of("423", "750"), List.of("MM1", "MM2", "MM3"),
-                new User("expense.approve.423", "423", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Jason.Batty", "423", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("450", List.of("450"), List.of("NN1", "NN2", "NN3"),
-                new User("expense.approve.450", "450", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Hannah.Deebanks", "450", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("451", List.of("451"), List.of("OO1", "OO2", "OO3"),
-                new User("expense.approve.451", "451", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Jack.Watkinson", "451", UserType.COURT, Set.of()),
-                    new User("Peter.Herrington", "451", UserType.COURT, Set.of()),
-                    new User("Anya.Cummings", "451", UserType.COURT, Set.of())),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("472", List.of("472"), List.of("PP1", "PP2", "PP3"),
-                new User("expense.approve.472", "472", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("Angela.Newman5", "472", UserType.COURT, Set.of(Role.MANAGER))),
-                List.of(),
-                Map.of()));
-            courts.add(new CourtLoc("471", List.of("471", "464"), List.of("RR1", "RR2", "RR3"),
-                new User("expense.approve.472", "472", UserType.COURT, Set.of(Role.MANAGER)),
-                List.of(new User("brooke.hutson", "471", UserType.COURT, Set.of()),
-                    new User("esther.fernandez-abd", "471", UserType.COURT, Set.of())),
-                List.of(new Judge(301), new Judge(302), new Judge(303), new Judge(304), new Judge(305), new Judge(306),
-                    new Judge(307), new Judge(308), new Judge(309), new Judge(310)),
-                Map.of()));
 
-            loadCourtData(courts);
-
-            if (createVoters) {
-                createVoters(courts, (100 * 1000));
-                return;
-            }
-
-            if (createJudges) {
+            if (ENV.isCreateJudges()) {
                 createJudges(courts, 10);
             }
 
-            if (createCourtrooms) {
+            if (ENV.isCreateCourtrooms()) {
                 createCourtrooms(courts, 10);
             }
 
-//add some nil pools
-            if (createPools) {
 
-                //Create deferral pools
-                if (createDeferralPools) {
-                    createDeferralPools();
-                }
-
-                log.info("Creating Bureau Pools");
-
-                for (int index = 0; index < totalPool; index++) {
-                    log.info("Creating pool with index: " + index);
-                    CourtLoc courtLoc = courts.get(index % courts.size());
-                    String locCode = new RandomFromCollectionGeneratorImpl<>(courtLoc.locCodes).generate();
-
-                    User user = getRandomBureauUser();
-                    PoolRequestDto poolRequestDto = CreatePool.createPoolOnBehalfOfCourt(
-                        user,
-                        locCode,
-                        LocalDateTime.of(poolStartDatesGen.generate(), LocalTime.of(8, 30)),
-                        poolTypeGenerator.generate(),
-                        false,
-                        (int) Math.round(numberOfJurorsPerPool * 0.60),
-                        0
-                    );
-                    //5% change to not summon jurors
-                    if (RandomGenerator.nextInt(0, 100) > 5) {
-                        summonJurors(user, courtLoc, poolRequestDto, numberOfJurorsPerPool, numberOfDeferrals);
-                    }
-                }
+            if (ENV.isShouldCreatePools()) {
+                createPools.createPools();
             }
 
-            if (assignPoliceChecks) {
+            if (ENV.isAssignPoliceChecks()) {
                 updatePoliceChecks();
             }
 
-            if (runCourtSteps) {
+            if (ENV.isRunCourtSteps()) {
                 runCourtSteps();
             }
 
@@ -542,82 +317,6 @@ public class DataCreator {
         } catch (Throwable throwable) {
             throwable.printStackTrace();
             throw throwable;
-        }
-    }
-
-    private void createOnePoolPerCourt() {
-        List<String> locCode = new ArrayList<>();
-        courts.forEach(courtLoc -> locCode.addAll(courtLoc.locCodes));
-        locCode
-            .forEach(string -> retryElseThrow(() -> createOnePool(string), 1, false));
-    }
-
-    private void createOnePool(String locCode) {
-        CourtLoc courtLoc = getCourt(locCode);
-        User user = getRandomBureauUser();
-        PoolRequestDto poolRequestDto = CreatePool.createPoolOnBehalfOfCourt(
-            user,
-            locCode,
-            LocalDateTime.of(
-                LocalDate.now().with(TemporalAdjusters.next(DayOfWeek.MONDAY)),
-                LocalTime.of(8, 30)
-            ),
-            poolTypeGenerator.generate(),
-            false,
-            (int) Math.round(numberOfJurorsPerPool * 0.60),
-            0
-        );
-
-        List<String> postCodes = getPostcodes(courtLoc);
-        new CreatePoolControllerClient()
-            .createPoolRequest(
-                jurorPoolRepository,
-                new JwtDetailsBureau(user),
-                PoolCreateRequestDto.builder()
-                    .poolNumber(poolRequestDto.getPoolNumber())
-                    .startDate(poolRequestDto.getAttendanceDate())
-                    .attendTime(
-                        LocalDateTime.of(poolRequestDto.getAttendanceDate(), poolRequestDto.getAttendanceTime()))
-                    .noRequested(numberOfJurorsPerPool)
-                    .bureauDeferrals(0)
-                    .numberRequired((int) Math.round(numberOfJurorsPerPool * 0.60))
-                    .citizensToSummon(numberOfJurorsPerPool)
-                    .catchmentArea(poolRequestDto.getLocationCode())
-                    .postcodes(postCodes)
-                    .build());
-
-        List<JurorPool> jurorPools =
-            transactionTemplate.execute(
-                status -> jurorPoolRepository.findAllByPoolNumber(poolRequestDto.getPoolNumber()));
-
-        assert jurorPools != null;
-        for (JurorPool jurorPool : jurorPools) {
-            Juror juror = transactionTemplate.execute(
-                status -> jurorRepository.findById(jurorPool.getJurorNumber()).orElseThrow());
-            if (juror.isResponded()) {
-                continue;
-            }
-            retryElseThrow(() -> straightForwardSummon(user, jurorPool, juror), 1, false);
-        }
-    }
-
-    private void loadCourtData(List<CourtLoc> courts) {
-        for (CourtLoc courtLoc : courts) {
-            List<Judge> judges = judgeRepository.findAllByOwner(courtLoc.courtCode)
-                .stream()
-                .map(judgeEntity -> new Judge(judgeEntity.getId()))
-                .toList();
-            courtLoc.setJudges(Collections.immutable(judges));
-
-            List<CourtRoomEntity> courtRooms = courtroomRepository.findByCourtLocationOwner(courtLoc.courtCode);
-            Map<String, List<CourtRoom>> courtRoomMap = new HashMap<>();
-            for (CourtRoomEntity courtRoomEntity : courtRooms) {
-                List<CourtRoom> jurorNumbers =
-                    courtRoomMap.computeIfAbsent(courtRoomEntity.getCourtLocation().getLocCode(),
-                        k -> new ArrayList<>());
-                jurorNumbers.add(new CourtRoom(courtRoomEntity.getId()));
-            }
-            courtLoc.setCourtRoomMap(courtRoomMap);
         }
     }
 
@@ -1124,9 +823,11 @@ public class DataCreator {
         return jurors;
     }
 
-
-    Generator<String> nameGenerator = new FirstNameGeneratorImpl().addPostGenerate(string ->
+    private static final Generator<String> nameGenerator = new FirstNameGeneratorImpl().addPostGenerate(string ->
         string + " " + new LastNameGeneratorImpl().generate());
+    private static final FirstNameGeneratorImpl firstNameGenerator = new FirstNameGeneratorImpl();
+    private static final LastNameGeneratorImpl lastNameGenerator = new LastNameGeneratorImpl();
+
 
     private String createDefendant() {
         String name = nameGenerator.generate();
@@ -1161,56 +862,6 @@ public class DataCreator {
                 );
             } catch (Throwable throwable) {
                 log.error("Error updating police check for juror: " + pncCheckViewEntity.getJurorNumber(), throwable);
-            }
-        }
-    }
-
-    private void createDeferralPools() {
-        log.info("Creating deferral Pools");
-        boolean skip = true;
-        for (CourtLoc courtLoc : courts) {
-            List<String> postcodes = getPostcodes(courtLoc);
-            for (String locCode : courtLoc.locCodes) {
-                User user = getRandomBureauUser();
-                PoolRequestDto poolRequestDto = CreatePool.createPoolOnBehalfOfCourt(
-                    user,
-                    locCode,
-                    LocalDateTime.of(poolStartDatesGen.generate(), LocalTime.of(1, 30)),
-                    poolTypeGenerator.generate(),
-                    false,
-                    numberOfJurorsPerPool * 2,
-                    0
-                );
-
-
-                new CreatePoolControllerClient()
-                    .createPoolRequest(
-                        jurorPoolRepository,
-                        new JwtDetailsBureau(user),
-                        PoolCreateRequestDto.builder()
-                            .poolNumber(poolRequestDto.getPoolNumber())
-                            .startDate(poolRequestDto.getAttendanceDate())
-                            .attendTime(
-                                LocalDateTime.of(poolRequestDto.getAttendanceDate(),
-                                    poolRequestDto.getAttendanceTime()))
-                            .noRequested(numberOfJurorsPerPool * 2)
-                            .bureauDeferrals(numberOfDeferrals)
-                            .numberRequired(numberOfJurorsPerPool)
-                            .citizensToSummon(numberOfJurorsPerPool * 2)
-                            .catchmentArea(poolRequestDto.getLocationCode())
-                            .postcodes(postcodes)
-                            .build());
-
-                List<JurorPool> jurorPools =
-                    transactionTemplate.execute(
-                        status -> jurorPoolRepository.findAllByPoolNumber(poolRequestDto.getPoolNumber()));
-
-                RollingList<LocalDate> attendanceDates = new RollingList<>(poolDates);
-                for (JurorPool jurorPool : jurorPools) {
-                    Juror juror = transactionTemplate.execute(
-                        status -> jurorRepository.findById(jurorPool.getJurorNumber()).orElseThrow());
-                    deferralSummon(user, jurorPool, juror, attendanceDates.getNext());
-                }
             }
         }
     }
@@ -1686,585 +1337,5 @@ public class DataCreator {
             }
         }
         return postCodes;
-    }
-
-    private void summonJurors(User user, CourtLoc courtLoc, PoolRequestDto poolRequestDto, final int numToSummon,
-                              int numberOfDeferrals) {
-        log.info("Summoning jurors for pool number {}", poolRequestDto.getPoolNumber());
-        List<String> postCodes = getPostcodes(courtLoc);
-        Long availableDeferrals = new CreatePoolControllerClient()
-            .getBureauDeferrals(
-                new JwtDetailsBureau(user),
-                poolRequestDto.getLocationCode(),
-                poolRequestDto.getAttendanceDate()
-            );
-
-        if (availableDeferrals < numberOfDeferrals) {
-            numberOfDeferrals = availableDeferrals.intValue();
-        }
-
-        int numToSummonExcludingDeferrals = numToSummon - numberOfDeferrals;
-
-        new CreatePoolControllerClient()
-            .createPoolRequest(
-                jurorPoolRepository,
-                new JwtDetailsBureau(user),
-                PoolCreateRequestDto.builder()
-                    .poolNumber(poolRequestDto.getPoolNumber())
-                    .startDate(poolRequestDto.getAttendanceDate())
-                    .attendTime(
-                        LocalDateTime.of(poolRequestDto.getAttendanceDate(), poolRequestDto.getAttendanceTime()))
-                    .noRequested(numToSummon)
-                    .bureauDeferrals(numberOfDeferrals)//TODO
-                    .numberRequired((int) Math.round(numToSummon * 0.50))
-                    .citizensToSummon(numToSummonExcludingDeferrals)
-                    .catchmentArea(poolRequestDto.getLocationCode())
-                    .postcodes(postCodes)
-                    .build());
-        List<JurorPool> jurorPools =
-            transactionTemplate.execute(
-                status -> jurorPoolRepository.findAllByPoolNumber(poolRequestDto.getPoolNumber()));
-        enterSummonsReply(user, jurorPools);
-    }
-
-
-    private void enterSummonsReply(User user, List<JurorPool> jurorPools) {
-        for (JurorPool jurorPool : jurorPools) {
-            try {
-                Juror juror = transactionTemplate.execute(
-                    status -> jurorRepository.findById(jurorPool.getJurorNumber()).orElseThrow());
-
-                if (juror.isResponded()) {
-                    continue;
-                }
-                log.info("Processing juror {}. Pool {}", juror.getJurorNumber(), jurorPool.getPoolNumber());
-
-                RandomFromCollectionGeneratorWeightedImpl<Runnable> summonMethodGenerator =
-                    new RandomFromCollectionGeneratorWeightedImpl<>(Map.of(
-                        () -> straightForwardSummon(user, jurorPool, juror), 0.75,
-                        () -> ineligibleSummon(user, jurorPool, juror), 0.05,
-                        () -> deferralSummon(user, jurorPool, juror, getFutureDate(jurorPool.getNextDate())), 0.05,
-                        () -> excusalSummon(user, jurorPool, juror), 0.05,
-                        () -> disqualifySummon(user, jurorPool, juror), 0.05,
-                        () -> log.info("No action taken"), 0.05
-                    ));
-                summonMethodGenerator.generate().run();
-            } catch (Exception e) {
-                e.printStackTrace();
-                log.error("Error processing juror {}. Pool {}",
-                    jurorPool.getJurorNumber(),
-                    jurorPool.getPoolNumber(),
-                    e);
-            }
-        }
-    }
-
-    private void ineligibleSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > paperChange) {
-            ineligibleSummonPaper(user, jurorPool, juror);
-        } else {
-            ineligibleSummonDigital(user, jurorPool, juror);
-        }
-    }
-
-    private void ineligibleSummonDigital(User user, JurorPool jurorPool, Juror juror) {
-        JurorResponseDto jurorResponseDto =
-            getValidJurorResponseDto(juror);
-        int random = RandomGenerator.nextInt(0, 32);
-
-        jurorResponseDto.setQualify(JurorResponseDto.Qualify.builder()
-            .onBail(
-                JurorResponseDto.Qualify.Answerable.builder()
-                    .answer(random % 2 == 0)
-                    .details(random % 2 == 0 ? "Some Details 1" : null)
-                    .build())
-            .mentalHealthAct(JurorResponseDto.Qualify.Answerable.builder()
-                .answer(random % 3 == 0)
-                .details(random % 3 == 0 ? "Some Details 2" : null)
-                .build())
-            .livedConsecutive(
-                JurorResponseDto.Qualify.Answerable.builder()
-                    .answer(random % 3 == 0)
-                    .details(random % 3 == 0 ? "Some Details 3" : null)
-                    .build())
-            .convicted(JurorResponseDto.Qualify.Answerable.builder()
-                .answer(random % 4 == 0)
-                .details(random % 4 == 0 ? "Some Details 4" : null)
-                .build())
-            .build());
-
-        new PublicEndpointControllerClient()
-            .respondToSummons(
-                new JwtDetailsPublic(juror),
-                jurorResponseDto);
-        processReplyDisqualify(user, jurorPool, ReplyMethod.DIGITAL);
-    }
-
-    private void ineligibleSummonPaper(User user, JurorPool jurorPool, Juror juror) {
-        JurorPaperResponseDto jurorPaperResponseDto =
-            getValidJurorPaperResponseDto(jurorPool, juror);
-        int random = RandomGenerator.nextInt(0, 32);
-        jurorPaperResponseDto.setEligibility(JurorPaperResponseDto.Eligibility.builder()
-            .onBail(random % 2 == 0)
-            .livedConsecutive(random % 3 == 0)
-            .convicted(random % 4 == 0)
-            .mentalHealthAct(random % 5 == 0)
-            .mentalHealthCapacity(random % 6 == 0)
-            .build());
-
-        new JurorPaperResponseControllerClient()
-            .respondToSummons(
-                new JwtDetailsBureau(user),
-                jurorPaperResponseDto);
-
-        processReplyDisqualify(user, jurorPool, ReplyMethod.PAPER);
-    }
-
-
-    private void processReplyResponded(User user, JurorPool jurorPool) {
-        if (RandomGenerator.nextDouble(0, 1) > 0.98) {
-            return;
-        }
-        new JurorPaperResponseControllerClient()
-            .updateJurorPaperResponseStatus(
-                new JwtDetailsBureau(user),
-                jurorPool.getJurorNumber(),
-                ProcessingStatus.CLOSED
-            );
-    }
-
-    private void processReplyRespondedDigital(User user, JurorPool jurorPool) {
-        if (RandomGenerator.nextDouble(0, 1) > 0.98) {
-            return;
-        }
-        new JurorResponseControllerClient()
-            .updateResponseStatus(
-                new JwtDetailsBureau(user),
-                jurorPool.getJurorNumber(),
-                BureauResponseStatusUpdateDto.builder()
-                    .jurorNumber(jurorPool.getJurorNumber())
-                    .version(1)//TODO confirm
-                    .status(ProcessingStatus.CLOSED)
-                    .build()
-            );
-    }
-
-    private void disqualifySummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > paperChange) {
-            disqualifySummonPaper(user, jurorPool, juror);
-        } else {
-            disqualifySummonDigital(user, jurorPool, juror);
-        }
-    }
-
-    private void disqualifySummonPaper(User user, JurorPool jurorPool, Juror juror) {
-        new JurorPaperResponseControllerClient()
-            .respondToSummons(
-                new JwtDetailsBureau(user),
-                getValidJurorPaperResponseDto(jurorPool, juror));
-        processReplyDisqualify(user, jurorPool, ReplyMethod.PAPER);
-    }
-
-    private void disqualifySummonDigital(User user, JurorPool jurorPool, Juror juror) {
-        new PublicEndpointControllerClient()
-            .respondToSummons(
-                new JwtDetailsPublic(juror),
-                getValidJurorResponseDto(juror));
-        processReplyDisqualify(user, jurorPool, ReplyMethod.DIGITAL);
-    }
-
-
-    private void processReplyDisqualify(User user, JurorPool jurorPool, ReplyMethod replyMethod) {
-        if (RandomGenerator.nextDouble(0, 1) > 0.98) {
-            return;
-        }
-        if (Boolean.TRUE.equals(transactionTemplate.execute(
-            status -> jurorRepository.findById(jurorPool.getJurorNumber()).orElseThrow().isResponded()))) {
-            return;
-        }
-        new DisqualifyJurorControllerClient()
-            .disqualifyJuror(new JwtDetailsBureau(user),
-                jurorPool.getJurorNumber(),
-                DisqualifyJurorDto.builder()
-                    .replyMethod(replyMethod)
-                    .code(new RandomFromCollectionGeneratorImpl<>(DisqualifyCodeEnum.values()).generate())
-                    .build());
-    }
-
-    private void processReplyDeferral(User user, JurorPool jurorPool, ReplyMethod replyMethod,
-                                      LocalDate deferralDate) {
-        if (RandomGenerator.nextDouble(0, 1) > 0.98) {
-            return;
-        }
-        new DeferralMaintenanceControllerClient()
-            .processJurorDeferral(new JwtDetailsBureau(user),
-                jurorPool.getJurorNumber(),
-                DeferralReasonRequestDto.builder()
-                    .deferralDate(deferralDate)
-                    .excusalReasonCode(
-                        new RandomFromCollectionGeneratorImpl<>(ExcusalCodeEnum.values()).generate().getCode())
-                    .replyMethod(replyMethod)
-                    .build());
-    }
-
-    private void processReplyExcusal(User user, JurorPool jurorPool, ReplyMethod replyMethod) {
-        if (RandomGenerator.nextDouble(0, 1) > 0.98) {
-            return;
-        }
-        new ExcusalResponseControllerClient()
-            .respondToExcusalRequest(new JwtDetailsBureau(user),
-                ExcusalDecisionDto.builder()
-                    .excusalReasonCode(
-                        new RandomFromCollectionGeneratorImpl<>(ExcusalCodeEnum.values()).generate().getCode())
-                    .excusalDecision(new RandomFromCollectionGeneratorWeightedImpl<>(
-                        Map.of(ExcusalDecision.GRANT, 0.95, ExcusalDecision.REFUSE, 0.05)).generate())
-                    .replyMethod(replyMethod)
-                    .build(),
-                jurorPool.getJurorNumber());
-    }
-
-
-    private LocalDate getFutureDate(LocalDate minDate) {
-        List<LocalDate> allowedDates =
-            poolDates.stream().filter(localDate -> localDate.isAfter(minDate)).toList();
-        LocalDate deferralDate;
-        if (!allowedDates.isEmpty()) {
-            deferralDate = new RandomFromCollectionGeneratorImpl<>(allowedDates).generate();
-        } else {
-            deferralDate = minDate.plusWeeks(1);
-        }
-        return deferralDate;
-    }
-
-    private final FirstNameGeneratorImpl firstNameGenerator = new FirstNameGeneratorImpl();
-    private final LastNameGeneratorImpl lastNameGenerator = new LastNameGeneratorImpl();
-
-    private JurorResponseDto getValidJurorResponseDto(Juror juror) {
-        JurorResponseDto.ThirdParty thirdParty = null;
-
-        if (RandomGenerator.nextBoolean(.95, .05)) {
-            thirdParty = new JurorResponseDto.ThirdParty();
-
-            thirdParty.setThirdPartyFName(firstNameGenerator.generate());
-            thirdParty.setThirdPartyLName(lastNameGenerator.generate());
-            thirdParty.setContactEmail(thirdParty.getThirdPartyFName() + "." + thirdParty.getThirdPartyLName() + "@"
-                + emailSuffixGenerator.generate());
-            thirdParty.setMainPhone(phoneGenerator2.generate());
-            thirdParty.setOtherPhone(phoneGenerator2.generate());
-            thirdParty.setEmailAddress(thirdParty.getThirdPartyFName() + "." + thirdParty.getThirdPartyLName() + "@"
-                + emailSuffixGenerator.generate());
-
-            thirdParty.setUseJurorEmailDetails(RandomGenerator.nextBoolean(.95, .05));
-            thirdParty.setUseJurorPhoneDetails(RandomGenerator.nextBoolean(.95, .05));
-            thirdParty.setRelationship(new RandomFromCollectionGeneratorImpl<>(List.of(
-                "Spouse", "Partner", "Parent", "Child", "Sibling", "Friend", "Carer", "Other"
-            )).generate());
-            thirdParty.setThirdPartyReason(new RandomFromCollectionGeneratorImpl<>(List.of(
-                "Juror is not there",
-                "Juror is unable to reply by themselves",
-                "Juror is deceased",
-                "Disability", "Mental Health", "Physical Health", "Other"
-            )).generate());
-        }
-
-        List<JurorResponseDto.CjsEmployment> cjsEmployment = null;
-
-//        if (RandomGenerator.nextBoolean(.95, .05)) {
-//            cjsEmployment = new ArrayList<>();
-//            int count = RandomGenerator.nextInt(0, 3);
-//            Set<String> employers = new HashSet<>(List.of(
-//                "Police Force", "HM Prison Service", "National Crime Agency", "Judiciary",
-//                "HMCTS", "Other"
-//            ));
-//            do {
-//                String employer = new RandomFromCollectionGeneratorImpl<>(employers).generate();
-//                cjsEmployment.add(JurorResponseDto.CjsEmployment.builder()
-//                    .cjsEmployer(employer)
-//                    .cjsEmployerDetails(new RandomFromCollectionGeneratorImpl<>(List.of(
-//                        "", "", "Sample Part 1", "Sample Part 2", "Sample Part 3", "Sample Part 4", "Sample Part 5"
-//                    )).generate())
-//                    .build());
-//                employers.remove(employer);
-//            } while (count-- > 0);
-//        }
-
-
-        String assistanceSpecialArrangements = null;
-        List<JurorResponseDto.ReasonableAdjustment> reasonableAdjustment = null;
-//        if (RandomGenerator.nextBoolean(.95, .05)) {
-//            reasonableAdjustment = List.of(
-//                JurorResponseDto.ReasonableAdjustment
-//                    .builder()
-//                    .assistanceType(
-//                        new RandomFromCollectionGeneratorImpl<>(ReasonableAdjustmentsEnum.values())
-//                            .generate().getCode()
-//                    )
-//                    .assistanceTypeDetails(
-//                        new RandomFromCollectionGeneratorImpl<>(List.of(
-//                            "Sample Details 1", "Sample Details 2", "Sample Details 3",
-//                            "Sample Details 4", "Sample Details 5"
-//                        )).generate()
-//                    )
-//                    .build()
-//            );
-//            assistanceSpecialArrangements = reasonableAdjustment.get(0).getAssistanceTypeDetails();
-//        }
-        return JurorResponseDto.builder()
-            .jurorNumber(juror.getJurorNumber())
-            .title(juror.getTitle())
-            .firstName(juror.getFirstName())
-            .lastName(juror.getLastName())
-            .addressLineOne(juror.getAddressLine1())
-            .addressLineTwo(juror.getAddressLine2())
-            .addressLineThree(juror.getAddressLine3())
-            .addressTown(juror.getAddressLine4())
-            .addressCounty(juror.getAddressLine5())
-            .addressPostcode(juror.getPostcode())
-            .dateOfBirth(dateOfBirthGenerator.generateValue())
-            .primaryPhone(phoneGenerator2.generate())
-            .secondaryPhone(nullOrGenerate(phoneGenerator2, 0.2))
-            .emailAddress((juror.getFirstName() + "." + juror.getLastName() + "@") + emailSuffixGenerator.generate())
-            .cjsEmployment(cjsEmployment)
-            .specialNeeds(reasonableAdjustment)
-            .assistanceSpecialArrangements(assistanceSpecialArrangements)
-            .deferral(null)
-            .excusal(null)
-            .qualify(JurorResponseDto.Qualify.builder()
-                .livedConsecutive(JurorResponseDto.Qualify.Answerable.builder().answer(true).build())
-                .mentalHealthAct(JurorResponseDto.Qualify.Answerable.builder().answer(false).build())
-                .onBail(JurorResponseDto.Qualify.Answerable.builder().answer(false).build())
-                .convicted(JurorResponseDto.Qualify.Answerable.builder().answer(false).build())
-                .build())
-            .version(1)//TODO
-            .replyMethod(ReplyMethod.DIGITAL)
-            .thirdParty(thirdParty)
-            .welsh(false)
-            .build();
-
-    }
-
-    private JurorPaperResponseDto getValidJurorPaperResponseDto(JurorPool jurorPool, Juror juror) {
-
-        JurorPaperResponseDto.ThirdParty thirdParty = JurorPaperResponseDto.ThirdParty.builder()
-            .relationship(null)
-            .thirdPartyReason(null)
-            .build();
-
-        if (RandomGenerator.nextBoolean(.95, .05)) {
-            thirdParty.setRelationship(new RandomFromCollectionGeneratorImpl<>(List.of(
-                "Spouse", "Partner", "Parent", "Child", "Sibling", "Friend", "Carer", "Other"
-            )).generate());
-            thirdParty.setThirdPartyReason(new RandomFromCollectionGeneratorImpl<>(List.of(
-                "Juror is not there",
-                "Juror is unable to reply by themselves",
-                "Juror is deceased",
-                "Disability", "Mental Health", "Physical Health", "Other"
-            )).generate());
-        }
-
-        List<JurorPaperResponseDto.CjsEmployment> cjsEmployment = null;
-
-        if (RandomGenerator.nextBoolean(.95, .05)) {
-            cjsEmployment = new ArrayList<>();
-            int count = RandomGenerator.nextInt(0, 3);
-            Set<String> employers = new HashSet<>(List.of(
-                "Police Force", "HM Prison Service", "National Crime Agency", "Judiciary",
-                "HMCTS", "Other"
-            ));
-            do {
-                String employer = new RandomFromCollectionGeneratorImpl<>(employers).generate();
-                cjsEmployment.add(JurorPaperResponseDto.CjsEmployment.builder()
-                    .cjsEmployer(employer)
-                    .cjsEmployerDetails(new RandomFromCollectionGeneratorImpl<>(List.of(
-                        "", "", "Sample Part 1", "Sample Part 2", "Sample Part 3", "Sample Part 4", "Sample Part 5"
-                    )).generate())
-                    .build());
-                employers.remove(employer);
-            } while (count-- > 0);
-        }
-
-
-        List<JurorPaperResponseDto.ReasonableAdjustment> reasonableAdjustment = null;
-        if (RandomGenerator.nextBoolean(.95, .05)) {
-            reasonableAdjustment = List.of(
-                JurorPaperResponseDto.ReasonableAdjustment
-                    .builder()
-                    .assistanceType(
-                        new RandomFromCollectionGeneratorImpl<>(ReasonableAdjustmentsEnum.values())
-                            .generate().getCode()
-                    )
-                    .assistanceTypeDetails(
-                        new RandomFromCollectionGeneratorImpl<>(List.of(
-                            "", "Sample Details 1", "Sample Details 2", "Sample Details 3",
-                            "Sample Details 4", "Sample Details 5"
-                        )).generate()
-                    )
-                    .build()
-            );
-        }
-
-
-        return JurorPaperResponseDto.builder()
-            .jurorNumber(jurorPool.getJurorNumber())
-            .title(juror.getTitle())
-            .firstName(juror.getFirstName())
-            .lastName(juror.getLastName())
-            .addressLineOne(juror.getAddressLine1())
-            .addressLineTwo(juror.getAddressLine2())
-            .addressLineThree(juror.getAddressLine3())
-            .addressTown(juror.getAddressLine4())
-            .addressCounty(juror.getAddressLine5())
-            .addressPostcode(juror.getPostcode())
-            .dateOfBirth(dateOfBirthGenerator.generateValue())
-            .primaryPhone(nullOrGenerate(phoneGenerator, 0.05))
-            .secondaryPhone(nullOrGenerate(phoneGenerator, 0.2))
-            .emailAddress(nullOrGenerate(emailSuffixGenerator,
-                (juror.getFirstName() + "." + juror.getLastName() + "@"),
-                0.05))
-            .cjsEmployment(cjsEmployment)
-            .reasonableAdjustments(reasonableAdjustment)
-            .canServeOnSummonsDate(true)
-            .deferral(false)
-            .excusal(false)
-            .eligibility(JurorPaperResponseDto.Eligibility.builder()
-                .livedConsecutive(true)
-                .mentalHealthAct(false)
-                .mentalHealthCapacity(false)
-                .onBail(false)
-                .convicted(false)
-                .build())
-            .signed(true)
-            .thirdParty(thirdParty)
-            .build();
-    }
-
-    private void straightForwardSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > paperChange) {//TODO
-            straightForwardSummonPaper(user, jurorPool, juror);
-        } else {
-            straightForwardSummonDigital(user, jurorPool, juror);
-        }
-    }
-
-    private void straightForwardSummonDigital(User user, JurorPool jurorPool, Juror juror) {
-        new PublicEndpointControllerClient()
-            .respondToSummons(
-                new JwtDetailsPublic(juror),
-                getValidJurorResponseDto(juror));
-
-        Juror juror1 =
-            transactionTemplate.execute(status -> jurorRepository.findById(juror.getJurorNumber()).orElseThrow());
-        if (juror1.isResponded()) {
-            return;
-        }
-        processReplyRespondedDigital(user, jurorPool);
-    }
-
-
-    private void straightForwardSummonPaper(User user, JurorPool jurorPool, Juror juror) {
-        new JurorPaperResponseControllerClient()
-            .respondToSummons(
-                new JwtDetailsBureau(user),
-                getValidJurorPaperResponseDto(jurorPool, juror));
-        processReplyResponded(user, jurorPool);
-    }
-
-    private void deferralSummon(User user, JurorPool jurorPool, Juror juror,
-                                LocalDate deferralDate) {
-        if (RandomGenerator.nextDouble(0, 1) > paperChange) {
-            deferralSummonPaper(user, jurorPool, juror, deferralDate);
-        } else {
-            deferralSummonDigital(user, jurorPool, juror, deferralDate);
-        }
-    }
-
-    private void deferralSummonDigital(User user, JurorPool jurorPool, Juror juror, LocalDate deferralDate) {
-        JurorResponseDto jurorResponseDto = getValidJurorResponseDto(juror);
-        jurorResponseDto.setDeferral(JurorResponseDto.Deferral.builder()
-            .dates(deferralDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
-            .reason("I am busy this day")
-            .build());
-
-        new PublicEndpointControllerClient()
-            .respondToSummons(
-                new JwtDetailsPublic(juror),
-                jurorResponseDto);
-        processReplyDeferral(user, jurorPool, ReplyMethod.DIGITAL, deferralDate);
-    }
-
-    private void deferralSummonPaper(User user, JurorPool jurorPool, Juror juror, LocalDate deferralDate) {
-        JurorPaperResponseDto jurorPaperResponseDto =
-            getValidJurorPaperResponseDto(jurorPool, juror);
-        jurorPaperResponseDto.setDeferral(true);
-        new JurorPaperResponseControllerClient()
-            .respondToSummons(new JwtDetailsBureau(user), jurorPaperResponseDto);
-        processReplyDeferral(user, jurorPool, ReplyMethod.PAPER, deferralDate);
-    }
-
-    private void excusalSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > paperChange) {
-            excusalSummonPaper(user, jurorPool, juror);
-        } else {
-            excusalSummonDigital(user, jurorPool, juror);
-        }
-    }
-
-    private void excusalSummonDigital(User user, JurorPool jurorPool, Juror juror) {
-        JurorResponseDto jurorResponseDto = getValidJurorResponseDto(juror);
-        jurorResponseDto.setExcusal(JurorResponseDto.Excusal.builder()
-            .reason("I am busy this day")
-            .build());
-
-        new PublicEndpointControllerClient()
-            .respondToSummons(
-                new JwtDetailsPublic(juror),
-                jurorResponseDto);
-        processReplyExcusal(user, jurorPool, ReplyMethod.DIGITAL);
-    }
-
-    private void excusalSummonPaper(User user, JurorPool jurorPool, Juror juror) {
-        JurorPaperResponseDto jurorPaperResponseDto =
-            getValidJurorPaperResponseDto(jurorPool, juror);
-        jurorPaperResponseDto.setExcusal(true);
-        new JurorPaperResponseControllerClient()
-            .respondToSummons(new JwtDetailsBureau(user), jurorPaperResponseDto);
-        processReplyExcusal(user, jurorPool, ReplyMethod.PAPER);
-    }
-
-
-    private String nullOrGenerate(ValueGenerator<String> generator, double chanceOfNull) {
-        return nullOrGenerate(generator, "", chanceOfNull);
-    }
-
-    private String nullOrGenerate(ValueGenerator<String> generator, String prefix, double chanceOfNull) {
-        if (RandomGenerator.nextDouble(0, 1) <= chanceOfNull) {
-            return null;
-        }
-        return prefix + generator.generate();
-    }
-
-    private void createVoters(List<CourtLoc> courts, int votersPerCourt) {
-        RegexGeneratorImpl regexGenerator = new RegexGeneratorImpl(false, Constants.POSTCODE_SUFFIX);
-        List<VotersV2> votersV2s = new ArrayList<>();
-        for (CourtLoc courtLoc : courts) {
-            for (String locCode : courtLoc.locCodes) {
-                VotersV2Generator votersGenerator = new VotersV2Generator();
-                votersGenerator.setLocCode(new FixedValueGeneratorImpl<>(locCode));
-                votersGenerator.setPostcode(new RandomFromCollectionGeneratorImpl<>(courtLoc.catchmentAreas));
-                votersGenerator.addPostGenerate(votersV2 -> {
-                    votersV2.setPostcode(votersV2.getPostcode() + " " + regexGenerator.generate());
-                });
-                for (int i = 0; i < votersPerCourt; i++) {
-                    votersV2s.add(votersGenerator.generate());
-                }
-                log.info("Voters generated for court {}", locCode);
-            }
-
-        }
-        log.info("Generated {} voters", votersV2s.size());
-        log.info("Saving voters");
-        Util.batchSave(votersRepository, votersV2s, BATCH_SIZE);
-//        votersRepository.saveAll(votersV2s);
-        log.info("Voters saved");
     }
 }

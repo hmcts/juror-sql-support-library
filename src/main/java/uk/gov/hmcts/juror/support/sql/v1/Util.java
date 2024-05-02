@@ -3,8 +3,10 @@ package uk.gov.hmcts.juror.support.sql.v1;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.repository.CrudRepository;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
+import uk.gov.hmcts.juror.support.generation.generators.value.ValueGenerator;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -49,12 +51,8 @@ public class Util {
             batches.size(), batchSize);
         AtomicLong atomicLong = new AtomicLong(batches.size());
         batches
-            .stream()
             .forEach(ts -> {
                 log.info("Saved batch of {} items {} batches left", ts.size(), atomicLong.decrementAndGet());
-                if(atomicLong.get() > 179){
-                    return;
-                }
                 repository.saveAll(ts);
             });
     }
@@ -67,5 +65,29 @@ public class Util {
         List<T> items = new ArrayList<>(from);
         items.removeAll(excluding);
         return new RandomFromCollectionGeneratorImpl<>(items).generate();
+    }
+
+    public static String nullOrGenerate(ValueGenerator<String> generator, double chanceOfNull) {
+        return nullOrGenerate(generator, "", chanceOfNull);
+    }
+
+    public static String nullOrGenerate(ValueGenerator<String> generator, String prefix, double chanceOfNull) {
+        if (RandomGenerator.nextDouble(0, 1) <= chanceOfNull) {
+            return null;
+        }
+        return prefix + generator.generate();
+    }
+
+
+    public static LocalDate getFutureDate(List<LocalDate> dates, LocalDate minDate) {
+        List<LocalDate> allowedDates =
+            dates.stream().filter(localDate -> localDate.isAfter(minDate)).toList();
+        LocalDate deferralDate;
+        if (!allowedDates.isEmpty()) {
+            deferralDate = new RandomFromCollectionGeneratorImpl<>(allowedDates).generate();
+        } else {
+            deferralDate = minDate.plusWeeks(1);
+        }
+        return deferralDate;
     }
 }

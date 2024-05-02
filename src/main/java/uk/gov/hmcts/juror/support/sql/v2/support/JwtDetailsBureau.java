@@ -5,6 +5,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.User;
 
 import java.util.Collection;
 import java.util.Date;
@@ -18,22 +19,24 @@ public class JwtDetailsBureau implements JwtDetails {
     private final String jwtSecret;
 
     public JwtDetailsBureau() {
-        this.jwtSecret = DataCreator.jwtSecret;
+        this.jwtSecret = DataCreator.ENV.getBureauJwtSecret();
     }
 
 
-    public JwtDetailsBureau(DataCreator.User user) {
+    public JwtDetailsBureau(User user) {
         this();
         this.updateOwnerAndLoc(user);
         this.login = user.getUsername();
         this.roles = new HashSet<>(user.getRoles());
         this.userType = user.getUserType();
+        this.activeUserType = user.getUserType();
     }
 
     private String owner = "415";
     private String locCode = "415";
     private String login = "ben";
     private UserType userType = UserType.COURT;
+    private UserType activeUserType = userType;
     private Collection<Role> roles = new HashSet<>(Set.of(Role.values()));
 
     private String userLevel = "1";
@@ -62,6 +65,7 @@ public class JwtDetailsBureau implements JwtDetails {
         claims.put("locCode", locCode);
         claims.put("login", login);
         claims.put("userType", userType);
+        claims.put("activeUserType", activeUserType);
         claims.put("roles", roles);
         claims.put("userLevel", userLevel);
         claims.put("staff", staff);
@@ -75,7 +79,7 @@ public class JwtDetailsBureau implements JwtDetails {
         return this;
     }
 
-    public JwtDetailsBureau updateOwnerAndLoc(DataCreator.User user) {
+    public JwtDetailsBureau updateOwnerAndLoc(User user) {
         this.owner = user.getOwner();
         this.locCode = user.getOwner();
         this.staff.put("courts", user.getCourts());

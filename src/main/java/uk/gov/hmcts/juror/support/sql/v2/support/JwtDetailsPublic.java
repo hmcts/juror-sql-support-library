@@ -19,7 +19,7 @@ public class JwtDetailsPublic implements JwtDetails {
     private final String jwtSecret;
 
     public JwtDetailsPublic() {
-        this.jwtSecret = DataCreator.publicJwtSecret;
+        this.jwtSecret = DataCreator.ENV.getPublicJwtSecret();
     }
 
 

@@ -1,10 +1,10 @@
 package uk.gov.hmcts.juror.support.sql.v2.flows;
 
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
 import uk.gov.hmcts.juror.support.sql.v2.flows.enums.PoolType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.PoolRequestDto;
 import uk.gov.hmcts.juror.support.sql.v2.generated.clients.RequestPoolControllerClient;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.User;
 import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsBureau;
 
 import java.time.LocalDate;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 public class CreatePool {
 
     public static PoolRequestDto createPoolOnBehalfOfCourt(
-        DataCreator.User user,
+        User user,
         String locCode,
         LocalDateTime attendanceDateTime,
         PoolType poolType,
@@ -46,7 +46,7 @@ public class CreatePool {
     }
 
 
-    public static String generatePoolNumber(DataCreator.User user, String locCode, LocalDate attendanceDate) {
+    public static String generatePoolNumber(User user, String locCode, LocalDate attendanceDate) {
         return new RequestPoolControllerClient()
             .generatePoolNumber(new JwtDetailsBureau(user)
                     .updateOwnerAndLoc(locCode),

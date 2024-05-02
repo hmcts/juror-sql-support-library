@@ -26,10 +26,6 @@ import java.util.Map;
 @Slf4j
 public class BaseClient {
 
-    private static final String API_URL = DataCreator.IS_DEMO
-        ? "https://juror-api.demo.platform.hmcts.net"
-        : "http://localhost:8080";
-
     protected final RestTemplateBuilder restTemplateBuilder;
     protected final RestTemplate restTemplate;
 
@@ -76,7 +72,7 @@ public class BaseClient {
 
 
     private String createPopulatedUrl(String url, Map<String, String> pathParams, Map<String, String> queryParams) {
-        StringBuilder builtUrl = new StringBuilder(API_URL).append(url);
+        StringBuilder builtUrl = new StringBuilder(DataCreator.ENV.getUrl()).append(url);
         for (Map.Entry<String, String> entry : pathParams.entrySet()) {
             builtUrl = new StringBuilder(builtUrl.toString().replace("{" + entry.getKey() + "}", entry.getValue()));
         }

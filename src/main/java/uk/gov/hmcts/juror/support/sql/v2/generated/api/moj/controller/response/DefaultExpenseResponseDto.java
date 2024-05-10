@@ -14,8 +14,6 @@ import lombok.NoArgsConstructor;
 @Builder
 public class DefaultExpenseResponseDto {
 
-    @JsonProperty("juror_number")
-    private java.lang.String jurorNumber;
     @JsonProperty("financial_loss")
     private java.math.BigDecimal financialLoss;
     @JsonFormat(pattern = "HH:mm")

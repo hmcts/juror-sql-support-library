@@ -71,7 +71,9 @@ public class BaseClient {
             return response.getBody();
         } catch (Throwable e) {
             e.printStackTrace();
-            Thread.sleep(Long.MAX_VALUE);
+            if (DataCreator.ENV.isContinueOnAPIError()) {
+                Thread.sleep(Long.MAX_VALUE);
+            }
             throw e;
         }
     }

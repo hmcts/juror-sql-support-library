@@ -35,7 +35,6 @@ import uk.gov.hmcts.juror.support.sql.v2.support.JwtDetailsBureau;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
-import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -53,10 +52,6 @@ public class CreateTrials {
 
     private static final Generator<String> nameGenerator = new FirstNameGeneratorImpl().addPostGenerate(string ->
         string + " " + new LastNameGeneratorImpl().generate());
-    private static final FirstNameGeneratorImpl firstNameGenerator = new FirstNameGeneratorImpl();
-    private static final LastNameGeneratorImpl lastNameGenerator = new LastNameGeneratorImpl();
-
-
 
     private final JurorPoolRepository jurorPoolRepository;
     private final PoolRequestRepository poolRequestRepository;
@@ -98,100 +93,106 @@ public class CreateTrials {
     }
 
     public void createTrial(List<JurorPool> jurorPools) {
-        JurorPool firstPool = jurorPools.get(0);
-        String locCode = firstPool.getLocCode(poolRequestRepository);
-        LocalDate nextDate = firstPool.getNextDate();//TODO random
+        try {
+            JurorPool firstPool = jurorPools.get(0);
+            String locCode = firstPool.getLocCode(poolRequestRepository);
+            LocalDate nextDate = firstPool.getNextDate();//TODO random
 
-        LocalDate trialEnd = nextDate.plusDays(RandomGenerator.nextInt(5, 15));
-        if (trialEnd.getDayOfWeek() == DayOfWeek.SATURDAY) {
-            trialEnd = trialEnd.minusDays(1);
-        } else if (trialEnd.getDayOfWeek() == DayOfWeek.SUNDAY) {
-            trialEnd = trialEnd.plusDays(1);
-        }
+            LocalDate trialEnd = nextDate.plusDays(RandomGenerator.nextInt(5, 15));
+            if (trialEnd.getDayOfWeek() == DayOfWeek.SATURDAY) {
+                trialEnd = trialEnd.minusDays(1);
+            } else if (trialEnd.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                trialEnd = trialEnd.plusDays(1);
+            }
 
-        CourtDetails courtLoc = DataCreator.ENV.getCourt(locCode);
-        User courtUser = new RandomFromCollectionGeneratorImpl<>(courtLoc.getUsernames()).generate();
-        long currentCaseIndex = caseIndex.getAndIncrement();
-        log.info("Creating trial for court: " + locCode + " on " + nextDate + " with " + jurorPools.size() + " jurors");
-        log.info("Case Index: " + currentCaseIndex);
-        TrialSummaryDto trialSummaryDto = new TrialControllerClient()
-            .createTrial(new JwtDetailsBureau(courtUser),
-                TrialDto.builder()
-                    .caseNumber("CASE" + locCode + "A" + currentCaseIndex)
-                    .trialType(trialTypeGenerator.generate())
-                    .defendant(createDefendant())
-                    .startDate(nextDate)
-                    .judgeId(new RandomFromCollectionGeneratorImpl<>(courtLoc.getJudges()).generate().getId())
-                    .courtroomId(
-                        new RandomFromCollectionGeneratorImpl<>(courtLoc.getCourtRooms(locCode)).generate().getId())
-                    .courtLocation(locCode)
-                    .protectedTrial(false)
-                    .build()
-            );
+            CourtDetails courtLoc = DataCreator.ENV.getCourt(locCode);
+            User courtUser = new RandomFromCollectionGeneratorImpl<>(courtLoc.getUsernames()).generate();
+            courtUser.setActiveLocCode(locCode);
+            long currentCaseIndex = caseIndex.getAndIncrement();
+            log.info(
+                "Creating trial for court: " + locCode + " on " + nextDate + " with " + jurorPools.size() + " jurors");
+            log.info("Case Index: " + currentCaseIndex);
+            TrialSummaryDto trialSummaryDto = new TrialControllerClient()
+                .createTrial(new JwtDetailsBureau(courtUser),
+                    TrialDto.builder()
+                        .caseNumber("CASE" + locCode + "A" + currentCaseIndex)
+                        .trialType(trialTypeGenerator.generate())
+                        .defendant(createDefendant())
+                        .startDate(nextDate)
+                        .judgeId(new RandomFromCollectionGeneratorImpl<>(courtLoc.getJudges()).generate().getId())
+                        .courtroomId(
+                            new RandomFromCollectionGeneratorImpl<>(courtLoc.getCourtRooms(locCode)).generate().getId())
+                        .courtLocation(locCode)
+                        .protectedTrial(false)
+                        .build()
+                );
 
-        Util.retryElseThrow(() -> appearance.checkIn(courtUser, locCode, nextDate, jurorPools), 2, true);
+            Util.retryElseThrow(() -> appearance.checkIn(courtUser, locCode, nextDate, jurorPools), 2, false);
 
-        new PanelControllerClient()
-            .createPanel(
-                new JwtDetailsBureau(courtUser),
-                CreatePanelDto.builder()
-                    .attendanceDate(nextDate)
-                    .trialNumber(trialSummaryDto.getTrialNumber())
-                    .numberRequested(jurorPools.size())
-                    .courtLocationCode(locCode)
-                    .build());
+            new PanelControllerClient()
+                .createPanel(
+                    new JwtDetailsBureau(courtUser),
+                    CreatePanelDto.builder()
+                        .attendanceDate(nextDate)
+                        .trialNumber(trialSummaryDto.getTrialNumber())
+                        .numberRequested(jurorPools.size())
+                        .courtLocationCode(locCode)
+                        .build());
 
-        List<Juror> jurors =
-            jury.empanelledJury(courtUser, trialSummaryDto, nextDate,
-            locCode, jurorPools, 12);
+            List<Juror> jurors =
+                jury.empanelledJury(courtUser, trialSummaryDto, nextDate,
+                    locCode, jurorPools, 12);
 
 
-        List<String> jurorNumbers = jurorPools.stream().map(JurorPool::getJurorNumber).collect(Collectors.toList());
-        appearance.checkOut(courtUser, locCode, nextDate, jurorNumbers);
-        appearance.confirm(courtUser, locCode, nextDate, jurorNumbers);
-        //Added trial days
-        appearance.addAttendances(courtUser, courtLoc, locCode, nextDate.plusDays(1), trialEnd, jurorPools);
-        //Return jury
+            List<String> jurorNumbers = jurorPools.stream().map(JurorPool::getJurorNumber).collect(Collectors.toList());
+            appearance.checkOut(courtUser, locCode, nextDate, jurorNumbers);
+            appearance.confirm(courtUser, locCode, nextDate, jurorNumbers);
+            //Added trial days
+            appearance.addAttendances(courtUser, courtLoc, locCode, nextDate.plusDays(1), trialEnd, jurorPools);
+            //Return jury
 
-        new TrialControllerClient()
-            .returnJury(
-                new JwtDetailsBureau(courtUser),
-                trialSummaryDto.getTrialNumber(),
-                locCode,
-                ReturnJuryDto.builder()
-                    .checkIn("08:30")
-                    .checkOut(null)
-                    .completed(false)
-                    .attendanceDate(trialEnd)
-                    .jurors(jurors.stream().map(
-                        juror -> JurorDetailRequestDto.builder()
-                            .jurorNumber(juror.getJurorNumber())
-                            .firstName(juror.getFirstName())
-                            .lastName(juror.getLastName())
-                            .result(PanelResult.JUROR)
-                            .build()).toList())
-                    .build()
-            );
+            new TrialControllerClient()
+                .returnJury(
+                    new JwtDetailsBureau(courtUser),
+                    trialSummaryDto.getTrialNumber(),
+                    locCode,
+                    ReturnJuryDto.builder()
+                        .checkIn("08:30")
+                        .checkOut(null)
+                        .completed(false)
+                        .attendanceDate(trialEnd)
+                        .jurors(jurors.stream().map(
+                            juror -> JurorDetailRequestDto.builder()
+                                .jurorNumber(juror.getJurorNumber())
+                                .firstName(juror.getFirstName())
+                                .lastName(juror.getLastName())
+                                .result(PanelResult.JUROR)
+                                .build()).toList())
+                        .build()
+                );
 
-        //End trial
-        new TrialControllerClient()
-            .endTrial(
-                new JwtDetailsBureau(courtUser),
-                EndTrialDto.builder()
-                    .trialEndDate(trialEnd)
-                    .trialNumber(trialSummaryDto.getTrialNumber())
-                    .locationCode(locCode)
-                    .build()
-            );
+            //End trial
+            new TrialControllerClient()
+                .endTrial(
+                    new JwtDetailsBureau(courtUser),
+                    EndTrialDto.builder()
+                        .trialEndDate(trialEnd)
+                        .trialNumber(trialSummaryDto.getTrialNumber())
+                        .locationCode(locCode)
+                        .build()
+                );
 
-        //Complete service
-        completeService.completeService(courtUser, jurorPools, trialEnd);
-        //Add expenses
-        for (JurorPool jurorPool : jurorPools) {
-            createExpenses.addExpensesByAppearance(courtUser, courtLoc, locCode,
-                appearanceRepository.findAllByPoolNumberAndJurorNumberAndAppearanceStage(jurorPool.getPoolNumber(),
-                    jurorPool.getJurorNumber(),
-                    AppearanceStage.EXPENSE_ENTERED));
+            //Complete service
+            completeService.completeService(courtUser, jurorPools, trialEnd);
+            //Add expenses
+            for (JurorPool jurorPool : jurorPools) {
+                createExpenses.addExpensesByAppearance(courtUser, courtLoc, locCode,
+                    appearanceRepository.findAllByPoolNumberAndJurorNumberAndAppearanceStage(jurorPool.getPoolNumber(),
+                        jurorPool.getJurorNumber(),
+                        AppearanceStage.EXPENSE_ENTERED));
+            }
+        }catch (Throwable throwable){
+            throwable.printStackTrace();
         }
     }
 
@@ -204,7 +205,7 @@ public class CreateTrials {
     }
 
     public void processTrialJurorPools(String trialNumber, LocalDate trialStart,
-                                        String locCode, List<DataCreator.JurorNumberPoolNumber> pools) {
+                                       String locCode, List<DataCreator.JurorNumberPoolNumber> pools) {
         log.info("Completing juror status for trial: " + trialNumber);
         LocalDate trialEnd = trialStart.plusDays(RandomGenerator.nextInt(5, 15));
         if (trialEnd.getDayOfWeek() == DayOfWeek.SATURDAY) {

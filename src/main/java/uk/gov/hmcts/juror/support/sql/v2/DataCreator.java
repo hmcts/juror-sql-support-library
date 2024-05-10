@@ -33,6 +33,7 @@ import uk.gov.hmcts.juror.support.sql.v2.spring.repository.JudgeRepository;
 import uk.gov.hmcts.juror.support.sql.v2.spring.repository.UserV2Repository;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -104,8 +105,8 @@ public class DataCreator {
                     .courtCode(courtLocation.getOwner())
                     .locCodes(courts.stream().map(CourtLocation::getLocCode).collect(Collectors.toList()))
                     .catchmentAreas(CourtDetails.getCatchmentAreas(courtLocation.getOwner()))
-                    .usernames(userRepository.findAllWithCourt(courtLocation.getOwner())
-                        .stream().map(User::new).toList())
+                    .usernames(new ArrayList<>(userRepository.findAllWithCourt(courtLocation.getOwner())
+                        .stream().map(User::new).toList()))
                     .judges(judgeRepository.findAllByOwner(courtLocation.getOwner())
                         .stream()
                         .map(Judge::new)

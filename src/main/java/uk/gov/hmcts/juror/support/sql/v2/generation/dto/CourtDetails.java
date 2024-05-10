@@ -5,11 +5,14 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.ToString;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
+import uk.gov.hmcts.juror.support.sql.v2.support.Role;
+import uk.gov.hmcts.juror.support.sql.v2.support.UserType;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -146,5 +149,15 @@ public class CourtDetails {
         this.courtRooms.forEach(courtRoom -> {
             this.courtRoomMap.put(courtRoom.getCourtLocation().getLocCode(), courtRooms);
         });
+        this.usernames.removeIf(user -> !user.username.matches("COURT\\.USER.*"));
+        this.usernames.forEach(user -> {
+            this.locCodes.forEach(user::addCourt);
+            user.getRoles().addAll(List.of(Role.values()));
+        });
+
+        this.expenseApprove = new User("COURT." + this.courtCode,
+            this.courtCode,
+            this.locCodes, UserType.COURT,
+            Set.of(Role.MANAGER));
     }
 }

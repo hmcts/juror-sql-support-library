@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
 import uk.gov.hmcts.juror.support.sql.v2.generation.dto.User;
 
@@ -14,6 +15,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
+@Slf4j
 public class JwtDetailsBureau implements JwtDetails {
 
     private final String jwtSecret;
@@ -51,12 +53,13 @@ public class JwtDetailsBureau implements JwtDetails {
     @JsonIgnore
     public String getJwt() {
         Date issuedAtDate = new Date();
-        return Jwts.builder()
+        String jwt = Jwts.builder()
             .claims(getClaims())
             .issuedAt(issuedAtDate)
             .expiration(new Date(issuedAtDate.getTime() + 300000L))
             .signWith(Keys.hmacShaKeyFor(Decoders.BASE64.decode(this.jwtSecret)))
             .compact();
+        return jwt;
     }
 
     private Map<String, Object> getClaims() {
@@ -81,7 +84,7 @@ public class JwtDetailsBureau implements JwtDetails {
 
     public JwtDetailsBureau updateOwnerAndLoc(User user) {
         this.owner = user.getOwner();
-        this.locCode = user.getOwner();
+        this.locCode = user.getActiveLocCode();
         this.staff.put("courts", user.getCourts());
         return this;
     }

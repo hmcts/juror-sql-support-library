@@ -15,7 +15,8 @@ import uk.gov.hmcts.juror.support.sql.v1.repository.JurorPoolRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.PoolRequestRepository;
 import uk.gov.hmcts.juror.support.sql.v2.DataCreator;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.ApproveExpenseDto;
-import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.ExpenseItemsDto;
+import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.DateDto;
+import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.ExpenseType;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpense;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpenseFinancialLoss;
 import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpenseFoodAndDrink;
@@ -100,7 +101,7 @@ public class CreateExpenses {
         @Getter
         class Data {
             final String jurorNumber;
-            final String poolNumber;
+            final String locCode;
             final List<uk.gov.hmcts.juror.support.sql.v2.spring.entity.Appearance> appearances = new ArrayList<>();
         }
 
@@ -109,64 +110,68 @@ public class CreateExpenses {
 
         for (uk.gov.hmcts.juror.support.sql.v2.spring.entity.Appearance appearance : appearances) {
             Util.retryElseThrow(() -> {
-                Data data = jurorDataMap.computeIfAbsent(appearance.getJurorNumber() + "-" + appearance.getPoolNumber(),
-                    k -> new Data(appearance.getJurorNumber(), appearance.getPoolNumber()));
+                Data data = jurorDataMap.computeIfAbsent(appearance.getJurorNumber() + "-" + appearance.getLocCode(),
+                    k -> new Data(appearance.getJurorNumber(), appearance.getLocCode()));
                 data.appearances.add(appearance);
 
 
                 TravelMethod travelMethod = travelMethodGenerator.generate();
 
-                jurorExpenseControllerClient.postDraftAttendedDayDailyExpense(
-                    new JwtDetailsBureau(user),
-                    appearance.getJurorNumber(),
-                    DailyExpense.builder()
-                        .dateOfExpense(appearance.getAttendanceDate())
-                        .poolNumber(appearance.getPoolNumber())
-                        .payCash(false)
-                        .time(DailyExpenseTime.builder()
-                            .payAttendance(PayAttendanceType.FULL_DAY)
-                            .travelTime(travelTimeGenerator.generateValue())
-                            .build())
-                        .financialLoss(DailyExpenseFinancialLoss.builder()
-                            .lossOfEarningsOrBenefits(amountGenerator.generate())
-                            .extraCareCost(amountGenerator.generate())
-                            .otherCosts(amountGenerator.generate())
-                            .build())
-                        .travel(DailyExpenseTravel.builder()
-                            .traveledByCar(travelMethod == TravelMethod.CAR)
-                            .jurorsTakenCar(travelMethod == TravelMethod.CAR ?
-                                RandomGenerator.nextInt(0, 4)
-                                : null)
-                            .traveledByMotorcycle(travelMethod == TravelMethod.MOTORCYCLE)
-                            .jurorsTakenMotorcycle(travelMethod == TravelMethod.MOTORCYCLE ?
-                                RandomGenerator.nextInt(0, 2)
-                                : null)
-                            .traveledByBicycle(travelMethod == TravelMethod.BICYCLE)
-                            .milesTraveled(RandomGenerator.nextInt(1, 20))
-                            .publicTransport(travelMethod == TravelMethod.PUBLIC_TRANSPORT ?
-                                amountGenerator.generate()
-                                : null)
-                            .taxi(travelMethod == TravelMethod.TAXI ?
-                                amountGenerator.generate()
-                                : null)
-                            .build())
-                        .foodAndDrink(DailyExpenseFoodAndDrink.builder()
-                            .foodAndDrinkClaimType(FoodDrinkClaimType.LESS_THAN_OR_EQUAL_TO_10_HOURS)
-                            .build())
-                        .build());
+                jurorExpenseControllerClient
+                    .postEditDailyExpense(
+                        new JwtDetailsBureau(user),
+                        appearance.getLocCode(),
+                        ExpenseType.DRAFT,
+                        appearance.getJurorNumber(),
+                        List.of(DailyExpense.builder()
+                            .dateOfExpense(appearance.getAttendanceDate())
+                            .paymentMethod(PaymentMethod.BACS)
+                            .time(DailyExpenseTime.builder()
+                                .payAttendance(PayAttendanceType.FULL_DAY)
+                                .travelTime(travelTimeGenerator.generateValue())
+                                .build())
+                            .financialLoss(DailyExpenseFinancialLoss.builder()
+                                .lossOfEarningsOrBenefits(amountGenerator.generate())
+                                .extraCareCost(amountGenerator.generate())
+                                .otherCosts(amountGenerator.generate())
+                                .build())
+                            .travel(DailyExpenseTravel.builder()
+                                .traveledByCar(travelMethod == TravelMethod.CAR)
+                                .jurorsTakenCar(travelMethod == TravelMethod.CAR ?
+                                    RandomGenerator.nextInt(0, 4)
+                                    : null)
+                                .traveledByMotorcycle(travelMethod == TravelMethod.MOTORCYCLE)
+                                .jurorsTakenMotorcycle(travelMethod == TravelMethod.MOTORCYCLE ?
+                                    RandomGenerator.nextInt(0, 2)
+                                    : null)
+                                .traveledByBicycle(travelMethod == TravelMethod.BICYCLE)
+                                .milesTraveled(RandomGenerator.nextInt(1, 20))
+                                .publicTransport(travelMethod == TravelMethod.PUBLIC_TRANSPORT ?
+                                    amountGenerator.generate()
+                                    : null)
+                                .taxi(travelMethod == TravelMethod.TAXI ?
+                                    amountGenerator.generate()
+                                    : null)
+                                .build())
+                            .foodAndDrink(DailyExpenseFoodAndDrink.builder()
+                                .foodAndDrinkClaimType(FoodDrinkClaimType.LESS_THAN_OR_EQUAL_TO_10_HOURS)
+                                .build())
+                            .build()));
             }, 1, false);
         }
 
         for (Data data : jurorDataMap.values()) {
-
             //Submit for approval
             jurorExpenseControllerClient
                 .submitDraftExpensesForApproval(
                     new JwtDetailsBureau(user),
-                    ExpenseItemsDto.builder()
-                        .jurorNumber(data.getJurorNumber())
-                        .poolNumber(data.getPoolNumber())
-                        .attendanceDates(data.getAppearances().stream().map(Appearance::getAttendanceDate).toList())
+                    data.getLocCode(),
+                    data.getJurorNumber(),
+                    DateDto.builder()
+                        .dates(data.getAppearances()
+                            .stream()
+                            .map(Appearance::getAttendanceDate)
+                            .toList())
                         .build()
                 );
 
@@ -186,6 +191,8 @@ public class CreateExpenses {
             jurorExpenseControllerClient
                 .approveExpenses(
                     new JwtDetailsBureau(courtLoc.getExpenseApprove()),
+                    locCode,
+                    PaymentMethod.BACS,
                     pendingApprovalList.getPendingApproval().stream()
                         .map(pendingApproval -> ApproveExpenseDto.builder()
                             .jurorNumber(pendingApproval.getJurorNumber())
@@ -230,54 +237,56 @@ public class CreateExpenses {
             TravelMethod travelMethod = travelMethodGenerator.generate();
 
             for (LocalDate attendanceDate : jurorDetail.getAttendanceDates()) {
-                jurorExpenseControllerClient.postDraftAttendedDayDailyExpense(
-                    new JwtDetailsBureau(user),
-                    jurorDetail.getJurorPool().getJurorNumber(),
-                    DailyExpense.builder()
-                        .dateOfExpense(attendanceDate)
-                        .poolNumber(jurorDetail.getJurorPool().getPoolNumber())
-                        .payCash(false)
-                        .time(DailyExpenseTime.builder()
-                            .payAttendance(PayAttendanceType.FULL_DAY)
-                            .travelTime(travelTimeGenerator.generateValue())
-                            .build())
-                        .financialLoss(DailyExpenseFinancialLoss.builder()
-                            .lossOfEarningsOrBenefits(amountGenerator.generate())
-                            .extraCareCost(amountGenerator.generate())
-                            .otherCosts(amountGenerator.generate())
-                            .build())
-                        .travel(DailyExpenseTravel.builder()
-                            .traveledByCar(travelMethod == TravelMethod.CAR)
-                            .jurorsTakenCar(travelMethod == TravelMethod.CAR ?
-                                RandomGenerator.nextInt(0, 4)
-                                : null)
-                            .traveledByMotorcycle(travelMethod == TravelMethod.MOTORCYCLE)
-                            .jurorsTakenMotorcycle(travelMethod == TravelMethod.MOTORCYCLE ?
-                                RandomGenerator.nextInt(0, 2)
-                                : null)
-                            .traveledByBicycle(travelMethod == TravelMethod.BICYCLE)
-                            .milesTraveled(RandomGenerator.nextInt(1, 20))
-                            .publicTransport(travelMethod == TravelMethod.PUBLIC_TRANSPORT ?
-                                amountGenerator.generate()
-                                : null)
-                            .taxi(travelMethod == TravelMethod.TAXI ?
-                                amountGenerator.generate()
-                                : null)
-                            .build())
-                        .foodAndDrink(DailyExpenseFoodAndDrink.builder()
-                            .foodAndDrinkClaimType(FoodDrinkClaimType.LESS_THAN_OR_EQUAL_TO_10_HOURS)
-                            .build())
-                        .build());
+                jurorExpenseControllerClient
+                    .postEditDailyExpense(
+                        new JwtDetailsBureau(user),
+                        locCode,
+                        ExpenseType.DRAFT,
+                        jurorDetail.getJurorPool().getJurorNumber(),
+                        List.of(DailyExpense.builder()
+                            .dateOfExpense(attendanceDate)
+                            .paymentMethod(PaymentMethod.BACS)
+                            .time(DailyExpenseTime.builder()
+                                .payAttendance(PayAttendanceType.FULL_DAY)
+                                .travelTime(travelTimeGenerator.generateValue())
+                                .build())
+                            .financialLoss(DailyExpenseFinancialLoss.builder()
+                                .lossOfEarningsOrBenefits(amountGenerator.generate())
+                                .extraCareCost(amountGenerator.generate())
+                                .otherCosts(amountGenerator.generate())
+                                .build())
+                            .travel(DailyExpenseTravel.builder()
+                                .traveledByCar(travelMethod == TravelMethod.CAR)
+                                .jurorsTakenCar(travelMethod == TravelMethod.CAR ?
+                                    RandomGenerator.nextInt(0, 4)
+                                    : null)
+                                .traveledByMotorcycle(travelMethod == TravelMethod.MOTORCYCLE)
+                                .jurorsTakenMotorcycle(travelMethod == TravelMethod.MOTORCYCLE ?
+                                    RandomGenerator.nextInt(0, 2)
+                                    : null)
+                                .traveledByBicycle(travelMethod == TravelMethod.BICYCLE)
+                                .milesTraveled(RandomGenerator.nextInt(1, 20))
+                                .publicTransport(travelMethod == TravelMethod.PUBLIC_TRANSPORT ?
+                                    amountGenerator.generate()
+                                    : null)
+                                .taxi(travelMethod == TravelMethod.TAXI ?
+                                    amountGenerator.generate()
+                                    : null)
+                                .build())
+                            .foodAndDrink(DailyExpenseFoodAndDrink.builder()
+                                .foodAndDrinkClaimType(FoodDrinkClaimType.LESS_THAN_OR_EQUAL_TO_10_HOURS)
+                                .build())
+                            .build()));
             }
 
             //Submit for approval
             jurorExpenseControllerClient
                 .submitDraftExpensesForApproval(
                     new JwtDetailsBureau(user),
-                    ExpenseItemsDto.builder()
-                        .jurorNumber(jurorDetail.getJurorPool().getJurorNumber())
-                        .poolNumber(jurorDetail.getJurorPool().getPoolNumber())
-                        .attendanceDates(jurorDetail.getAttendanceDates())
+                    locCode,
+                    jurorDetail.getJurorPool().getJurorNumber(),
+                    DateDto.builder()
+                        .dates(jurorDetail.getAttendanceDates())
                         .build()
                 );
 
@@ -295,6 +304,8 @@ public class CreateExpenses {
             jurorExpenseControllerClient
                 .approveExpenses(
                     new JwtDetailsBureau(courtLoc.getExpenseApprove()),
+                    locCode,
+                    PaymentMethod.BACS,
                     pendingApprovalList.getPendingApproval().stream()
                         .map(pendingApproval -> ApproveExpenseDto.builder()
                             .jurorNumber(pendingApproval.getJurorNumber())

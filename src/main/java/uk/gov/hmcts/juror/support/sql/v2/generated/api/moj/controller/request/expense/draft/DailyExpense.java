@@ -17,10 +17,8 @@ public class DailyExpense {
     @JsonFormat(pattern = "yyyy-MM-dd")
     @JsonProperty("date_of_expense")
     private java.time.LocalDate dateOfExpense;
-    @JsonProperty("pool_number")
-    private java.lang.String poolNumber;
-    @JsonProperty("pay_cash")
-    private java.lang.Boolean payCash;
+    @JsonProperty("payment_method")
+    private uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.PaymentMethod paymentMethod;
     @JsonProperty("time")
     private uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.controller.request.expense.draft.DailyExpenseTime time;
     @JsonProperty("financial_loss")

@@ -10,6 +10,7 @@ import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPoolId;
 import uk.gov.hmcts.juror.support.sql.v1.entity.ProcessingStatus;
 
 import java.util.List;
+import java.util.Set;
 
 @Repository
 public interface JurorPoolRepository extends CrudRepository<JurorPool, JurorPoolId> {
@@ -49,5 +50,16 @@ public interface JurorPoolRepository extends CrudRepository<JurorPool, JurorPool
     )
     List<JurorPool> findJurorPoolsNotInJury();
 
-    List<JurorPool> findAllByStatus(int completed);
+    List<JurorPool> findAllByStatus(int status);
+
+    @Query(value = "select jp.* from juror_mod.juror_pool jp "
+//        + "join juror_mod.juror_response jr on jr.juror_number =jp.juror_number and jr.reply_type  = 'Digital'"
+        + "join juror_mod.juror_response jr on jr.juror_number =jp.juror_number and jr.reply_type  = 'Paper'"
+        + "where jp.status = 1",
+    nativeQuery = true)
+    List<JurorPool> findAllByStatus();
+
+
+    Iterable<JurorPool> findByStatusIn(Set<Integer> status);
+
 }

@@ -4,8 +4,6 @@ import lombok.Getter;
 
 @Getter
 public enum ReasonableAdjustmentsEnum  {
-    NONE(" ", "None"),
-    
     CARING_RESPONSIBILITIES("C", "Caring responsibilities"),
     ALLERGIES("D", "Allergies"),
     HEARING_LOSS("H", "Hearing Loss"),

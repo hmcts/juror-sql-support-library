@@ -27,7 +27,14 @@ public class User {
     }
 
     public User addCourt(String court) {
-        courts.add(court);
+        this.courts.add(court);
         return this;
+    }
+
+    public boolean hasRole(Role role) {
+        if(this.roles == null){
+            return false;
+        }
+        return this.roles.contains(role);
     }
 }

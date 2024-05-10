@@ -10,7 +10,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorWeightedImpl;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
-import uk.gov.hmcts.juror.support.sql.v1.Util;
 import uk.gov.hmcts.juror.support.sql.v1.entity.Juror;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPool;
 import uk.gov.hmcts.juror.support.sql.v1.repository.JurorPoolRepository;

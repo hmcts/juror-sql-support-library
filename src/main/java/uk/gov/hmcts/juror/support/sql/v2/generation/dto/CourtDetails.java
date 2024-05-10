@@ -108,6 +108,7 @@ public class CourtDetails {
     User expenseApprove;
     List<User> usernames;
     List<Judge> judges;
+    List<CourtRoom> courtRooms;
 
     Map<String, List<CourtRoom>> courtRoomMap;
 
@@ -124,22 +125,6 @@ public class CourtDetails {
         return courtRoomMap.get(roomCode);
     }
 
-    public CourtDetails(String courtCode, List<String> locCodes, List<String> catchmentAreas,
-                        User expenseApprove,
-                        List<User> usernames, List<Judge> judges,
-                        Map<String, List<CourtRoom>> courtRoomMap) {
-        this.courtCode = courtCode;
-        this.locCodes = locCodes;
-        this.catchmentAreas = catchmentAreas;
-        this.expenseApprove = expenseApprove;
-        this.usernames = usernames;
-        this.judges = judges;
-        this.courtRoomMap = courtRoomMap;
-
-        if (locCodes != null && this.expenseApprove != null) {
-            locCodes.forEach(string -> this.expenseApprove.addCourt(string));
-        }
-    }
 
     public List<String> getPostcodes() {
         List<String> postCodes = new ArrayList<>();
@@ -154,5 +139,12 @@ public class CourtDetails {
             }
         }
         return postCodes;
+    }
+
+    public void setup() {
+        this.courtRoomMap = new HashMap<>();
+        this.courtRooms.forEach(courtRoom -> {
+            this.courtRoomMap.put(courtRoom.getCourtLocation().getLocCode(), courtRooms);
+        });
     }
 }

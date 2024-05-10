@@ -11,6 +11,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import uk.gov.hmcts.juror.support.sql.v1.entity.CourtLocation;
+import uk.gov.hmcts.juror.support.sql.v2.generation.dto.CourtRoom;
 
 @Entity
 @NoArgsConstructor
@@ -35,4 +36,13 @@ public class CourtRoomEntity {
     @Column(name = "description")
 //    @Length(max = 30)
     private String description;
+
+    public CourtRoom toCourtRoom() {
+        return CourtRoom.builder()
+            .id(id)
+            .courtLocation(courtLocation)
+            .roomNumber(roomNumber)
+            .description(description)
+            .build();
+    }
 }

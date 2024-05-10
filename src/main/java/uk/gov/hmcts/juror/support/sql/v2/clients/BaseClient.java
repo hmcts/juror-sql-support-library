@@ -49,25 +49,31 @@ public class BaseClient {
         Map<String, String> queryParams,
         JwtDetails jwtDetails,
         ParameterizedTypeReference<R> responseType) {
-        LinkedMultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        headers.add("Authorization", jwtDetails.getJwt());
-        HttpEntity<?> requestEntity = new HttpEntity<>(payload, headers);
+        try {
+            LinkedMultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+            headers.add("Authorization", jwtDetails.getJwt());
+            HttpEntity<?> requestEntity = new HttpEntity<>(payload, headers);
 
-        log.info("Calling API: {} {} with payload: {}", method, createPopulatedUrl(url, pathParams, queryParams),
-            mapper.writeValueAsString(payload));
-        ResponseEntity<R> response = restTemplate
-            .exchange(toUri(url, pathParams, queryParams),
-                method,
-                requestEntity,
-                responseType);
-        if (response.getStatusCode().equals(HttpStatus.GATEWAY_TIMEOUT)) {
-            throw new RuntimeException("timeout");
+            log.info("Calling API: {} {} with payload: {}", method, createPopulatedUrl(url, pathParams, queryParams),
+                mapper.writeValueAsString(payload));
+            ResponseEntity<R> response = restTemplate
+                .exchange(toUri(url, pathParams, queryParams),
+                    method,
+                    requestEntity,
+                    responseType);
+            if (response.getStatusCode().equals(HttpStatus.GATEWAY_TIMEOUT)) {
+                throw new RuntimeException("timeout");
+            }
+            if (!response.getStatusCode().is2xxSuccessful()) {
+                log.error("Error calling API: {} {} error {}", method, url, response.getBody());
+                throw new RuntimeException("Error calling API");
+            }
+            return response.getBody();
+        } catch (Throwable e) {
+            e.printStackTrace();
+            Thread.sleep(Long.MAX_VALUE);
+            throw e;
         }
-        if (!response.getStatusCode().is2xxSuccessful()) {
-            log.error("Error calling API: {} {} error {}",method, url, response.getBody());
-            throw new RuntimeException("Error calling API");
-        }
-        return response.getBody();
     }
 
 

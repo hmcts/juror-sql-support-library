@@ -41,6 +41,7 @@ public class Util {
         return batches;
     }
 
+
     public static <T> void batchSave(CrudRepository<T, ?> repository, List<T> items, int batchSize) {
         if (items.isEmpty()) {
             return;
@@ -89,5 +90,21 @@ public class Util {
             deferralDate = minDate.plusWeeks(1);
         }
         return deferralDate;
+    }
+
+    public static void retryElseThrow(Runnable runnable, int retryCount, boolean errorOnFail) {
+        Throwable lastThrowable = null;
+        for (int i = 0; i < retryCount; i++) {
+            try {
+                runnable.run();
+                return;
+            } catch (Throwable throwable) {
+                lastThrowable = throwable;
+                log.error("Error running step", throwable);
+            }
+        }
+        if (errorOnFail) {
+            throw new RuntimeException("Failed to run step", lastThrowable);
+        }
     }
 }

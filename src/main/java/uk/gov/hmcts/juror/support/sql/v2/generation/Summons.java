@@ -130,7 +130,7 @@ public class Summons {
     }
 
     private void ineligibleSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getPaperChance()) {
+        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getDigitalChance()) {
             ineligibleSummonPaper(user, jurorPool, juror);
         } else {
             ineligibleSummonDigital(user, jurorPool, juror);
@@ -192,7 +192,7 @@ public class Summons {
 
     public void deferralSummon(User user, JurorPool jurorPool, Juror juror,
                                LocalDate deferralDate) {
-        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getPaperChance()) {
+        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getDigitalChance()) {
             deferralSummonPaper(user, jurorPool, juror, deferralDate);
         } else {
             deferralSummonDigital(user, jurorPool, juror, deferralDate);
@@ -201,7 +201,7 @@ public class Summons {
 
 
     private void straightForwardSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getPaperChance()) {//TODO
+        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getDigitalChance()) {//TODO
             straightForwardSummonPaper(user, jurorPool, juror);
         } else {
             straightForwardSummonDigital(user, jurorPool, juror);
@@ -233,7 +233,7 @@ public class Summons {
 
 
     private void disqualifySummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getPaperChance()) {
+        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getDigitalChance()) {
             disqualifySummonPaper(user, jurorPool, juror);
         } else {
             disqualifySummonDigital(user, jurorPool, juror);
@@ -261,7 +261,7 @@ public class Summons {
 
 
     private void excusalSummon(User user, JurorPool jurorPool, Juror juror) {
-        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getPaperChance()) {
+        if (RandomGenerator.nextDouble(0, 1) > DataCreator.ENV.getDigitalChance()) {
             excusalSummonPaper(user, jurorPool, juror);
         } else {
             excusalSummonDigital(user, jurorPool, juror);

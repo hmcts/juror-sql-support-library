@@ -45,7 +45,7 @@ public class Juror implements Serializable {
     ////@Pattern(regexp = JUROR_NUMBER)
     ////@Length(max = 9)
     @StringSequenceGenerator(format = "%09d",
-        sequenceGenerator = @SequenceGenerator(id = "juror_number", start = 1)
+        sequenceGenerator = @SequenceGenerator(id = "juror_number", start = 300_000_000)
     )
     private String jurorNumber;
 

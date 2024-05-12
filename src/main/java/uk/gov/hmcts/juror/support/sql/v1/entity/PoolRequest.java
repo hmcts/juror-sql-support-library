@@ -37,7 +37,7 @@ public class PoolRequest implements Serializable {
     @Column(name = "pool_no")
 //    @Length(max = 9)
     @StringSequenceGenerator(format = "%09d",
-        sequenceGenerator = @SequenceGenerator(id = "pool_number", start = 1)
+        sequenceGenerator = @SequenceGenerator(id = "pool_number", start = 800_000_000)
     )
     private String poolNumber;
 

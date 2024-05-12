@@ -70,11 +70,12 @@ public class BaseClient {
             }
             return response.getBody();
         } catch (Throwable e) {
-            e.printStackTrace();
-            if (DataCreator.ENV.isContinueOnAPIError()) {
+            log.error("Error calling API: {} {}", method, url);
+            if (!DataCreator.ENV.isContinueOnAPIError()) {
+                log.error("Failed pausing thread");
                 Thread.sleep(Long.MAX_VALUE);
             }
-            throw e;
+            throw new RuntimeException("Error calling API", e);
         }
     }
 

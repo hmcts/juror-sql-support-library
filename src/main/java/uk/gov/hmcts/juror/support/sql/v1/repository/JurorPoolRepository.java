@@ -33,7 +33,7 @@ public interface JurorPoolRepository extends CrudRepository<JurorPool, JurorPool
         + "LEFT JOIN juror_mod.juror_trial jt on jp.juror_number = jt.juror_number "
         + "WHERE jp.status = ?1 AND jp.next_date IS NOT NULL AND jp.owner != '400' "
         + "AND jt.juror_number IS NULL "
-        + "ORDER BY jp.next_date , p.loc_code ",
+        + "ORDER BY p.loc_code, jp.next_date ",
         nativeQuery = true
     )
     Iterable<JurorPool> findJurorPoolsByStatusOrdered(int status);
@@ -44,6 +44,7 @@ public interface JurorPoolRepository extends CrudRepository<JurorPool, JurorPool
         + "LEFT JOIN juror_mod.appearance a on a.juror_number = jp.juror_number and a.pool_number = jp.pool_number "
         + "and a.trial_number is not NULL "
         + "WHERE jp.status = 2 AND jp.next_date IS NOT NULL AND jp.owner != '400' and a.attendance_date is NULL "
+        + " and jp.times_sel is null or jp.times_sel = 0 "
 //        + "AND jt.juror_number IS NULL "
         + "ORDER BY jp.next_date , p.loc_code ",
         nativeQuery = true

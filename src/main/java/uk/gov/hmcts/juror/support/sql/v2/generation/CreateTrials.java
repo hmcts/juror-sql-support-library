@@ -1,6 +1,7 @@
 package uk.gov.hmcts.juror.support.sql.v2.generation;
 
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -92,6 +93,7 @@ public class CreateTrials {
         log.info("Trials Creation finished");
     }
 
+    @SneakyThrows
     public void createTrial(List<JurorPool> jurorPools) {
         try {
             JurorPool firstPool = jurorPools.get(0);
@@ -127,7 +129,7 @@ public class CreateTrials {
                         .build()
                 );
 
-            Util.retryElseThrow(() -> appearance.checkIn(courtUser, locCode, nextDate, jurorPools), 2, false);
+            Util.retryElseThrow(() -> appearance.checkIn(courtUser, locCode, nextDate, jurorPools), 2, true);
 
             new PanelControllerClient()
                 .createPanel(
@@ -146,7 +148,7 @@ public class CreateTrials {
 
             List<String> jurorNumbers = jurorPools.stream().map(JurorPool::getJurorNumber).collect(Collectors.toList());
             appearance.checkOut(courtUser, locCode, nextDate, jurorNumbers);
-            appearance.confirm(courtUser, locCode, nextDate, jurorNumbers);
+//TODO            appearance.confirm(courtUser, locCode, nextDate, jurorNumbers);
             //Added trial days
             appearance.addAttendances(courtUser, courtLoc, locCode, nextDate.plusDays(1), trialEnd, jurorPools);
             //Return jury
@@ -183,16 +185,18 @@ public class CreateTrials {
                 );
 
             //Complete service
-            completeService.completeService(courtUser, jurorPools, trialEnd);
+//TODO            completeService.completeService(courtUser, jurorPools, trialEnd);
             //Add expenses
-            for (JurorPool jurorPool : jurorPools) {
-                createExpenses.addExpensesByAppearance(courtUser, courtLoc, locCode,
-                    appearanceRepository.findAllByPoolNumberAndJurorNumberAndAppearanceStage(jurorPool.getPoolNumber(),
-                        jurorPool.getJurorNumber(),
-                        AppearanceStage.EXPENSE_ENTERED));
-            }
-        }catch (Throwable throwable){
+//TODO            for (JurorPool jurorPool : jurorPools) {
+//                createExpenses.addExpensesByAppearance(courtUser, courtLoc, locCode,
+//                    appearanceRepository.findAllByPoolNumberAndJurorNumberAndAppearanceStage(jurorPool.getPoolNumber(),
+//                        jurorPool.getJurorNumber(),
+//                        AppearanceStage.EXPENSE_ENTERED));
+//            }
+        } catch (Throwable throwable) {
             throwable.printStackTrace();
+            log.error("WAITING: Error creating trial: " + throwable.getMessage());
+//            Thread.sleep(Long.MAX_VALUE);
         }
     }
 

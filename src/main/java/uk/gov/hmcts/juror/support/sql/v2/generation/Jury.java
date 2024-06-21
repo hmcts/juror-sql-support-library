@@ -131,9 +131,10 @@ public class Jury {
                 pools = new ArrayList<>();
                 lastTrialNumber = jurorTrialWithTrial.getTrialNumber();
             }
-            pools.add(new DataCreator.JurorNumberPoolNumber(
-                jurorTrialWithTrial.getJurorNumber(),
-                jurorTrialWithTrial.getPoolNumber()));
+            //TODO
+//            pools.add(new DataCreator.JurorNumberPoolNumber(
+//                jurorTrialWithTrial.getJurorNumber(),
+//                jurorTrialWithTrial.getPoolNumber()));
         }
 
         AtomicLong processedCount = new AtomicLong(0);

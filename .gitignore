@@ -26,3 +26,4 @@ replay_pid*
 /.idea/
 /build/
 /src/main/resources/v2/users.csv
+/src/main/java/uk/gov/hmcts/juror/support/sql/v2/Environment.java

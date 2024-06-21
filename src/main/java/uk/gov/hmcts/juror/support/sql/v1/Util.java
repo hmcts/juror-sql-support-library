@@ -55,6 +55,7 @@ public class Util {
             .forEach(ts -> {
                 log.info("Saved batch of {} items {} batches left", ts.size(), atomicLong.decrementAndGet());
                 repository.saveAll(ts);
+                log.info("Saved batch");
             });
     }
 

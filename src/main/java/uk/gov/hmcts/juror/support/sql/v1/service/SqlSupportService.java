@@ -1,12 +1,12 @@
 package uk.gov.hmcts.juror.support.sql.v1.service;
 
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
 import org.springframework.util.StopWatch;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
+import uk.gov.hmcts.juror.support.generation.generators.value.RegexGeneratorImpl;
+import uk.gov.hmcts.juror.support.generation.generators.value.ValueGenerator;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
 import uk.gov.hmcts.juror.support.sql.v1.Constants;
 import uk.gov.hmcts.juror.support.sql.v1.Util;
@@ -14,6 +14,7 @@ import uk.gov.hmcts.juror.support.sql.v1.dto.JurorAccountDetailsDto;
 import uk.gov.hmcts.juror.support.sql.v1.entity.CourtLocation;
 import uk.gov.hmcts.juror.support.sql.v1.entity.Juror;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorGenerator;
+import uk.gov.hmcts.juror.support.sql.v1.entity.JurorHistory;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPool;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPoolGenerator;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorStatus;
@@ -21,6 +22,7 @@ import uk.gov.hmcts.juror.support.sql.v1.entity.PoolRequest;
 import uk.gov.hmcts.juror.support.sql.v1.entity.PoolRequestGenerator;
 import uk.gov.hmcts.juror.support.sql.v1.entity.User;
 import uk.gov.hmcts.juror.support.sql.v1.entity.UserGenerator;
+import uk.gov.hmcts.juror.support.sql.v1.entity.enums.HistoryCodeMod;
 import uk.gov.hmcts.juror.support.sql.v1.entity.jurorresponse.AbstractJurorResponse;
 import uk.gov.hmcts.juror.support.sql.v1.entity.jurorresponse.AbstractJurorResponseGenerator;
 import uk.gov.hmcts.juror.support.sql.v1.entity.jurorresponse.DigitalResponse;
@@ -42,7 +44,23 @@ import uk.gov.hmcts.juror.support.sql.v1.repository.PaperResponseRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.PoolRequestRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.UserRepository;
 import uk.gov.hmcts.juror.support.sql.v1.repository.VotersRepository;
+import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.AppearanceStage;
+import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.AttendanceType;
+import uk.gov.hmcts.juror.support.sql.v2.generated.api.moj.enumeration.trial.TrialType;
+import uk.gov.hmcts.juror.support.sql.v2.spring.entity.Appearance;
+import uk.gov.hmcts.juror.support.sql.v2.spring.entity.CourtRoomEntity;
+import uk.gov.hmcts.juror.support.sql.v2.spring.entity.JudgeEntity;
+import uk.gov.hmcts.juror.support.sql.v2.spring.entity.JurorTrialWithTrial;
+import uk.gov.hmcts.juror.support.sql.v2.spring.entity.Trial;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.AppearanceRepository;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.CourtroomRepository;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.JudgeRepository;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.JurorTrialWithTrialRepository;
+import uk.gov.hmcts.juror.support.sql.v2.spring.repository.TrialRepository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumMap;
@@ -55,9 +73,12 @@ import java.util.function.BiFunction;
 import java.util.function.ObjIntConsumer;
 import java.util.stream.Collectors;
 
+import static uk.gov.hmcts.juror.support.sql.v1.Constants.OTHER_INFO_REGEX;
+
 //TODO commented out to disable load @Component
 @RequiredArgsConstructor(onConstructor = @__(@Autowired))
 @Slf4j
+//@Component
 public class SqlSupportService {
     private final JurorRepository jurorRepository;
     private final PoolRequestRepository poolRequestRepository;
@@ -66,6 +87,11 @@ public class SqlSupportService {
     private final PaperResponseRepository paperResponseRepository;
     private final UserRepository userRepository;
     private final VotersRepository votersRepository;
+    private final AppearanceRepository appearanceRepository;
+    private final JurorTrialWithTrialRepository jurorTrialWithTrialRepository;
+    private final TrialRepository trialRepository;
+    private final CourtroomRepository courtroomRepository;
+    private final JudgeRepository judgeRepository;
     private StopWatch stopWatch;
 
     private final CourtLocationRepository courtLocationRepository;
@@ -75,7 +101,7 @@ public class SqlSupportService {
     private static final List<User> users;
     private static final Map<String, List<User>> userMap;
     private static final Set<String> courtOwners;
-    private static final int BATCH_SIZE = 100;
+    private static final int BATCH_SIZE = 5000;
 
     static {
         courtLocations = new ArrayList<>();
@@ -102,17 +128,159 @@ public class SqlSupportService {
     }
 
 
-    @PostConstruct
+    ValueGenerator<HistoryCodeMod> historyCodeModValueGenerator =
+        new RandomFromCollectionGeneratorImpl<>(HistoryCodeMod.values());
+
+
+    ValueGenerator<String> historyOtherInfoGen = new RegexGeneratorImpl(false, OTHER_INFO_REGEX);
+
+    JurorHistory buildRandomJurorHistory(JurorPool jurorPool, User user) {
+        return JurorHistory.builder()
+            .poolNumber(jurorPool.getPoolNumber())
+            .jurorNumber(jurorPool.getJurorNumber())
+            .dateCreated(LocalDateTime.now())
+            .createdBy(user.getUsername())
+            .historyCode(historyCodeModValueGenerator.generate())
+            .otherInformation(historyOtherInfoGen.generate())
+            .build();
+    }
+
+    private Appearance buildRandomAppearance(JurorPool jurorPool, LocalDate attendanceDate) {
+        return Appearance.builder()
+            .attendanceDate(attendanceDate)
+            .jurorNumber(jurorPool.getJurorNumber())
+            .poolNumber(jurorPool.getPoolNumber())
+            .locCode(jurorPool.getLocCode(poolRequestRepository))
+            .timeIn(LocalTime.of(8, 30))
+            .timeOut(LocalTime.of(17, 30))
+            .appearanceStage(AppearanceStage.EXPENSE_AUTHORISED)
+            .attendanceType(AttendanceType.FULL_DAY)
+            .build();
+    }
+
+    private JurorTrialWithTrial buildRandomJurorTrial(Trial trial, JurorPool jurorPool) {
+        return JurorTrialWithTrial.builder()
+            .locCode(trial.getLocCode())
+            .jurorNumber(jurorPool.getJurorNumber())
+            .trialNumber(trial.getTrialNumber())
+            .completed(true)
+            .result("R")
+            .dateSelected(trial.getTrialStartDate().atTime(LocalTime.of(8, 30)))
+            .returnDate(trial.getTrialEndDate())
+            .build();
+    }
+
+    Map<String, ValueGenerator<CourtRoomEntity>> courtRoomGen;
+    Map<String, ValueGenerator<JudgeEntity>> judgeGen;
+
+    private Trial buildRandomTrial(CourtLocation courtLocation, long trialNumberIndex) {
+        return Trial.builder()
+            .trialNumber("SQLGEN" + trialNumberIndex)
+            .locCode(courtLocation.getLocCode())
+            .courtroom(courtRoomGen.get(courtLocation.getOwner()).generate().getId())
+            .judge(judgeGen.get(courtLocation.getOwner()).generate().getId())
+            .trialType(new RandomFromCollectionGeneratorImpl<>(TrialType.values()).generate())
+            .trialStartDate(LocalDate.of(2023, 1, 1))
+            .trialEndDate(LocalDate.of(2023, 12, 31))
+            .anonymous(false)
+            .description("NAME " + trialNumberIndex)
+            .build();
+    }
+
+//    @PostConstruct
     //Temporary for testing purposes
     public void postConstruct() {
-        this.stopWatch = new StopWatch();
-        clearDownDatabase();
         courtLocationRepository.findAll().forEach(courtLocations::add);
-        courtLocations.forEach(courtLocation -> courtOwners.add(courtLocation.getOwner()));
+        courtLocations.forEach(courtLocation -> {
+            courtOwners.add(courtLocation.getOwner());
+        });
+
+        judgeGen = new HashMap<>();
+        courtRoomGen = new HashMap<>();
+        courtLocations
+            .stream()
+            .filter(courtLocation -> courtLocation.getOwner().equalsIgnoreCase(courtLocation.getLocCode()))
+            .forEach(courtLocation -> {
+                judgeGen.put(courtLocation.getOwner(), new RandomFromCollectionGeneratorImpl<>(
+                    judgeRepository.findAllByOwner(courtLocation.getOwner())));
+                courtRoomGen.put(courtLocation.getOwner(), new RandomFromCollectionGeneratorImpl<>(
+                    courtroomRepository.findByCourtLocationOwner(courtLocation.getOwner())));
+            });
+
+        ValueGenerator<CourtLocation> courtLocationValueGenerator =
+            new RandomFromCollectionGeneratorImpl<>(courtLocations.stream()
+                .filter(courtLocation -> !courtLocation.getOwner().equalsIgnoreCase("400"))
+                .toList());
+
+
+//        userRepository.findAll().forEach(users::add);
+//        users.forEach(user -> userMap.computeIfAbsent(user.getOwner(), k -> new ArrayList<>()).add(user));
+//        randomUserGenerator =
+//            new RandomFromCollectionGeneratorImpl<>(users);
+
+        long trialNumberIndex = 0;
+        final int toAdd = 2_000_000;
+        final int maxTrials = toAdd / 16;
+        List<JurorTrialWithTrial> data = new ArrayList<>(toAdd);
+        List<Trial> trials = new ArrayList<>();
+        int count = 0;
+        System.out.println("TMP: Creating");
+        CourtLocation courtLocation = null;
+        Trial trial = null;
+        Map<String, Integer> offSetMap = new HashMap<>();
+        do {
+            try {
+                log.info("Trial: " + trialNumberIndex);
+                courtLocation = courtLocationValueGenerator.generate();
+                trial = buildRandomTrial(courtLocation, trialNumberIndex++);
+                trials.add(trial);
+
+
+                if (!offSetMap.containsKey(courtLocation.getOwner())) {
+                    offSetMap.put(courtLocation.getOwner(), 0);
+                }
+                Integer offset = offSetMap.get(courtLocation.getOwner());
+
+                List<JurorPool> pools = jurorPoolRepository.findAllBySql(courtLocation.getLocCode(), offset);
+                offSetMap.put(courtLocation.getOwner(), offset + 17);
+
+                Trial finalTrial = trial;
+                pools.forEach(jurorPool -> data.add(buildRandomJurorTrial(finalTrial, jurorPool)));
+                if (trialNumberIndex % 1000 == 0) {
+                    Util.batchSave(trialRepository, trials, BATCH_SIZE);
+                    Util.batchSave(jurorTrialWithTrialRepository, data, BATCH_SIZE);
+                    trials.clear();
+                    data.clear();
+                    log.info("Saving");
+                }
+            } catch (Throwable e) {
+                e.printStackTrace();
+            }
+        } while (trialNumberIndex < maxTrials);
+        Util.batchSave(trialRepository, trials, BATCH_SIZE);
+        Util.batchSave(jurorTrialWithTrialRepository, data, BATCH_SIZE);
+        log.info("TMP: Creating juror histories - Done");
+        if (true) {
+            log.info("DONE");
+            return;
+        }
+        this.stopWatch = new
+
+            StopWatch();
+
+        clearDownDatabase();
+        courtLocationRepository.findAll().
+
+            forEach(courtLocations::add);
+        courtLocations.forEach(courtLocation2 -> courtOwners.add(courtLocation2.getOwner()));
 
         createAllUsers(5, 1, 40, 5);//TODO confirm counts
-        userRepository.findAll().forEach(users::add);
-        users.forEach(user -> userMap.computeIfAbsent(user.getOwner(), k -> new ArrayList<>()).add(user));
+        userRepository.findAll().
+
+            forEach(users::add);
+        users.forEach(user -> userMap.computeIfAbsent(user.getOwner(), k -> new ArrayList<>()).
+
+            add(user));
         randomUserGenerator =
             new RandomFromCollectionGeneratorImpl<>(users);
 
@@ -128,7 +296,11 @@ public class SqlSupportService {
         jurorStatusCountMapCourt.put(JurorStatus.SUMMONED, 56443);
         jurorStatusCountMapCourt.put(JurorStatus.TRANSFERRED, 1075);
 
-        createJurorsAssociatedToPools(true, 12, 16, jurorStatusCountMapCourt);
+        createJurorsAssociatedToPools(true, 100, 161, jurorStatusCountMapCourt);
+        if (true) {
+            log.info("DONE: " + stopWatch.prettyPrint());
+            return;
+        }
 
         Map<JurorStatus, Integer> jurorStatusBureauMapCourt = new EnumMap<>(JurorStatus.class);
         jurorStatusBureauMapCourt.put(JurorStatus.DEFERRED, 93620);
@@ -137,8 +309,9 @@ public class SqlSupportService {
         jurorStatusBureauMapCourt.put(JurorStatus.REASSIGNED, 16712);
         jurorStatusBureauMapCourt.put(JurorStatus.RESPONDED, 240168);
         jurorStatusBureauMapCourt.put(JurorStatus.SUMMONED, 70288);
+
         //TODO undeliverable
-        createJurorsAssociatedToPools(false, 30, 40, jurorStatusBureauMapCourt);
+        createJurorsAssociatedToPools(false, 100, 161, jurorStatusBureauMapCourt);
 
         //TODO remove
         Map<JurorStatus, Integer> jurorStatusCountMapCourtTmp = new EnumMap<>(JurorStatus.class);
@@ -152,6 +325,7 @@ public class SqlSupportService {
 
         log.info("DONE: " + stopWatch.prettyPrint());
     }
+
 
     private void createAllUsers(int courtStandardCount,
                                 int courtSeniorCount,
@@ -204,7 +378,10 @@ public class SqlSupportService {
                                               int jurorsInPoolMaximumExclusive,
                                               Map<JurorStatus, Integer> jurorStatusCountMap) {
         final int totalCount = jurorStatusCountMap.values().stream().reduce(0, Integer::sum);
-
+        log.info("Total Count: " + totalCount);
+        if (true) {
+            return;
+        }
         log.info("Creating Jurors save dtos");
         List<JurorAccountDetailsDto> jurorAccountDetailsDtos =
             createJurorAccountDetailsDtos(isCourtOwned, jurorStatusCountMap);

@@ -75,4 +75,9 @@ public interface AppearanceRepository extends CrudRepository<Appearance, Appeara
     Appearance findAllByPoolNumberAndJurorNumberAndAttendanceDateAndAppearanceStageIsNull(
         String poolNumber, String jurorNumber, LocalDate localDate);
 
+    @Query(
+        value = "select distinct attendanceDate from Appearance "
+            + "where appearanceStage = 'CHECKED_OUT'"
+    )
+    List<LocalDate> getDistinctDates();
 }

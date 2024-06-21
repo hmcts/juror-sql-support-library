@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import uk.gov.hmcts.juror.support.generation.generators.code.Generator;
 import uk.gov.hmcts.juror.support.generation.generators.value.RandomFromCollectionGeneratorImpl;
+import uk.gov.hmcts.juror.support.generation.generators.value.ValueGenerator;
 import uk.gov.hmcts.juror.support.generation.util.RandomGenerator;
 import uk.gov.hmcts.juror.support.sql.v1.Util;
 import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPool;
@@ -71,6 +72,9 @@ public class Appearance {
     }
 
     public void confirm(User user, String locCode, LocalDate date, List<String> jurorNumbers) {
+        if (jurorNumbers.isEmpty()) {
+            return;
+        }
         JurorManagementControllerClient jurorManagementControllerClient = new JurorManagementControllerClient();
 
         List<List<String>> batches = Util.getBatches(jurorNumbers, 100);
@@ -211,5 +215,28 @@ public class Appearance {
                 date = date.plusDays(2);
             }
         }
+    }
+
+    public void confirmAllDays() {
+        List<LocalDate> dates = appearanceRepository.getDistinctDates();
+        dates.forEach(localDate -> {
+            DataCreator.ENV.getCourts().forEach(courtDetails -> {
+                confirmAttendance(localDate, courtDetails);
+            });
+            System.out.println(localDate);
+        });
+    }
+
+    private void confirmAttendance(LocalDate localDate, CourtDetails courtDetails) {
+        log.info("Confirming attendance for " + localDate + " at court " + courtDetails.getCourtCode());
+        ValueGenerator<User> userValueGenerator = new RandomFromCollectionGeneratorImpl<>(courtDetails.getUsernames());
+        courtDetails.getLocCodes().forEach(locCode -> {
+            this.confirm(
+                userValueGenerator.generate(),
+                locCode,
+                localDate,
+                appearanceRepository.findJurorNumbersByDateLocationCode(localDate, locCode)
+            );
+        });
     }
 }

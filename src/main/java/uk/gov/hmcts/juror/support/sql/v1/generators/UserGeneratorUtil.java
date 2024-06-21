@@ -29,12 +29,9 @@ public class UserGeneratorUtil {
     private static UserGenerator createStandard(String owner, int level) {
         UserGenerator generator = new UserGenerator();
         generator.setOwner(new FixedValueGeneratorImpl<>(owner));
-        generator.setLevel(new FixedValueGeneratorImpl<>(level));
         generator.addPostGenerate(user -> {
             user.setUsername(owner + "_LVL_" + level + "_ID_" + counter.getAndIncrement());
         });
-
-        generator.setPasswordChangedDate(new FixedValueGeneratorImpl<>(new Date()));
         return generator;
     }
 }

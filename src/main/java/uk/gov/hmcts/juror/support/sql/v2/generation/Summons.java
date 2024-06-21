@@ -96,7 +96,7 @@ public class Summons {
     }
 
 
-    private void enterSummonsReply(User user, List<JurorPool> jurorPools) {
+    public void enterSummonsReply(User user, List<JurorPool> jurorPools) {
         for (JurorPool jurorPool : jurorPools) {
             try {
                 Juror juror = transactionTemplate.execute(

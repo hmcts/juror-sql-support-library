@@ -28,6 +28,7 @@ import uk.gov.hmcts.juror.support.sql.v2.support.UserType;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -38,10 +39,6 @@ import java.util.Set;
 @NoArgsConstructor
 @EqualsAndHashCode(exclude = {"courts"})
 public class UserEntity {
-
-    @Column(name = "owner")
-    @Deprecated(forRemoval = true)
-    private String owner;
 
     @Id
     @Column(name = "username", unique = true, length = 20)
@@ -68,9 +65,6 @@ public class UserEntity {
     private LocalDateTime lastLoggedIn;
 
 
-    @Version
-    private Integer version;
-
     @Column(name = "approval_limit")
     private BigDecimal approvalLimit;
 
@@ -92,6 +86,6 @@ public class UserEntity {
         inverseJoinColumns = @JoinColumn(name = "loc_code", referencedColumnName = "loc_code")
     )
     @ManyToMany(fetch = FetchType.EAGER)
-    private Set<CourtLocation> courts;
+    private List<CourtLocation> courts;
 
 }

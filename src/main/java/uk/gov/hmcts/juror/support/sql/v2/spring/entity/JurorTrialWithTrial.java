@@ -12,35 +12,59 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
-import uk.gov.hmcts.juror.support.sql.v1.entity.JurorPoolId;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "juror_trial", schema = "juror_mod")
-@IdClass(JurorPoolId.class)
 @NoArgsConstructor
 @Getter
 @Setter
 @AllArgsConstructor
 @Builder
 @Slf4j
+@IdClass(JurorTrialWithTrial.JurorTrialWithTrialId.class)
 public class JurorTrialWithTrial implements Serializable {
 
-    @Id
+    public static class JurorTrialWithTrialId {
+        @Column(name = "juror_number")
+        @Id
+        private String jurorNumber;
+        @Column(name = "trial_number")
+        @Id
+        private String trialNumber;
+    }
+
+    @Column(name = "date_selected")
+    @NotNull
+    private LocalDateTime dateSelected;
+
+    /**
+     * /* The date the juror started sitting on the trial.
+     */
+    @Column(name = "empanelled_date")
+    private LocalDate empanelledDate;
+
+    /**
+     * /* The date the juror was returned from the trial and no longer sitting.
+     */
+    @Column(name = "return_date")
+    private LocalDate returnDate;
+
+
     @Column(name = "juror_number")
+    @Id
     private String jurorNumber;
 
-    @Id
-    @Column(name = "pool_number")
-    private String poolNumber;
 
     @NotNull
     @Column(name = "loc_code")
     private String locCode;
 
     @Column(name = "trial_number")
+    @Id
     private String trialNumber;
 
 
@@ -49,8 +73,4 @@ public class JurorTrialWithTrial implements Serializable {
 
     @Column(name = "result")
     private String result;
-
-    @Column(name = "trial_start_date")
-    private LocalDate trialStartDate;
-
 }

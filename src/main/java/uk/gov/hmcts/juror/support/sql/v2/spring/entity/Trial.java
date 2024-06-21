@@ -9,6 +9,7 @@ import jakarta.persistence.Table;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -25,21 +26,21 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Getter
 @Setter
+@Builder
 @Table(name = "trial", schema = "juror_mod")
 public class Trial implements Serializable {
 
     @Id
     @Column(name = "trial_number")
-//    @Length(max = 16)
     @NotBlank
     private String trialNumber;
+
 
     @NotNull
     @Column(name = "loc_code")
     private String locCode;
 
     @Column(name = "description")
-//    @Length(max = 50)
     @NotBlank
     private String description;
 

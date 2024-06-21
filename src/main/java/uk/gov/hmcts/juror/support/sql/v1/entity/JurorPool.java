@@ -52,6 +52,7 @@ public class JurorPool implements Serializable {
 
     @Getter(AccessLevel.NONE)
     @Transient
+//    @Column(name = "loc_code")
     private String locCode;
 
 

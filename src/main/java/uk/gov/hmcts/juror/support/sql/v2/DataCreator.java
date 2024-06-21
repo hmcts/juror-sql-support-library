@@ -42,7 +42,7 @@ import java.util.stream.Collectors;
 public class DataCreator {
 
 
-    public static final Environment ENV = Environment.LOCAL;
+    public static final Environment ENV = Environment.DEMO;
 
 
     public static RestTemplateBuilder restTemplateBuilder;
@@ -106,7 +106,10 @@ public class DataCreator {
                     .locCodes(courts.stream().map(CourtLocation::getLocCode).collect(Collectors.toList()))
                     .catchmentAreas(CourtDetails.getCatchmentAreas(courtLocation.getOwner()))
                     .usernames(new ArrayList<>(userRepository.findAllWithCourt(courtLocation.getOwner())
-                        .stream().map(User::new).toList()))
+                        .stream()
+                        .map(User::new)
+                        .distinct()
+                        .toList()))
                     .judges(judgeRepository.findAllByOwner(courtLocation.getOwner())
                         .stream()
                         .map(Judge::new)
@@ -127,28 +130,6 @@ public class DataCreator {
         log.info("DataCreator Started");
         addCourts();
         DataCreator.ENV.setup();//Required at start
-
-//            AtomicInteger count = new AtomicInteger();
-//            List<Consumer<JurorPool>> processReplyConsumers = List.of(
-////                (jurorPool) -> processReply.processReplyRespondedDigital(DataCreator.ENV.getRandomBureauUser(),
-////                    jurorPool),
-//                (jurorPool) ->
-//            );
-//            jurorPoolRepository.findAllByStatus()
-//                .parallelStream()
-//                .forEach(jurorPool -> {
-//                    try {
-//                        System.out.println("Processing Juror Pool: "
-//                            + " count: " + count.getAndIncrement());
-////                        processReply.processReplyRespondedDigital(DataCreator.ENV.getRandomBureauUser(), jurorPool);
-//                        processReply.processReplyResponded(DataCreator.ENV.getRandomBureauUser(), jurorPool);
-//                    }catch (Throwable throwable){
-//                        throwable.printStackTrace();
-//                    }
-//                });
-//            if (true) {
-//                return;
-//            }
 
         if (ENV.isCreateVoters()) {
             this.voters.createVoters(DataCreator.ENV.getCourts(), 10_000);

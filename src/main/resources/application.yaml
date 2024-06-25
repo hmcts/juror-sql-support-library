@@ -47,7 +47,12 @@ spring:
         format_sql: true
     show-sql: false
     generate-ddl: false
-
+uk:
+  gov:
+    hmcts:
+      juror:
+        security:
+          secret: tbc
 azure:
   application-insights:
     instrumentation-key: ${juror.AppInsightsInstrumentationKey:00000000-0000-0000-0000-000000000000}

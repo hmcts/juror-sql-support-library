@@ -212,7 +212,7 @@ dependencies {
 
 
   implementation 'com.github.hmcts:juror-generation-support-library:1.5.4'
-  annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.5.3'
+  annotationProcessor 'com.github.hmcts:juror-generation-support-library:1.5.4'
   implementation 'org.projectlombok:lombok:1.18.30'
   annotationProcessor 'org.projectlombok:lombok:1.18.30'
 

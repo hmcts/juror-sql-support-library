@@ -195,7 +195,7 @@ dependencies {
 
   implementation group: 'org.springdoc', name: 'springdoc-openapi-starter-webmvc-ui', version: '2.6.0'
 
-  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.5'
+  implementation group: 'com.github.hmcts.java-logging', name: 'logging', version: '6.1.7'
 
   implementation 'io.jsonwebtoken:jjwt-api:0.12.6'
   runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.6'
